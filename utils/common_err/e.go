@@ -1,4 +1,4 @@
-package ErrorCodes
+package common_err
 
 const (
 	SUCCESS          = 200
