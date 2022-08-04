@@ -2,6 +2,7 @@ package jwt
 
 import (
 	"fmt"
+	"net/http"
 	"strconv"
 	"time"
 
@@ -34,7 +35,7 @@ func JWT() gin.HandlerFunc {
 			code = common_err.ERROR_AUTH_TOKEN
 		}
 		if code != common_err.SUCCESS {
-			c.JSON(code, model.Result{Success: code, Message: common_err.GetMsg(code)})
+			c.JSON(http.StatusUnauthorized, model.Result{Success: code, Message: common_err.GetMsg(code)})
 			c.Abort()
 			return
 		}
