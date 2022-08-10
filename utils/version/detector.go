@@ -13,6 +13,7 @@ import (
 
 const (
 	LegacyCasaOSConfigFilePath = "/etc/casaos.conf"
+	LegacyCasaOSServiceName    = "casaos.service"
 	configKeyUniqueToZero3x    = "USBAutoMount"
 	configKeyDBPath            = "DBPath"
 )
