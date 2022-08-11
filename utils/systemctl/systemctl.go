@@ -19,13 +19,9 @@ func EnableService(name string) error {
 
 	defer conn.Close()
 
-	_, fileChanges, err := conn.EnableUnitFilesContext(ctx, []string{name}, false, true)
+	_, _, err = conn.EnableUnitFilesContext(ctx, []string{name}, false, true)
 	if err != nil {
 		return err
-	}
-
-	if len(fileChanges) != 1 {
-		return errors.New("failed to enable " + name)
 	}
 
 	// ensure service is enabled
@@ -83,13 +79,9 @@ func DisableService(name string) error {
 		}
 	}
 
-	fileChanges, err := conn.DisableUnitFilesContext(ctx, []string{name}, false)
+	_, err = conn.DisableUnitFilesContext(ctx, []string{name}, false)
 	if err != nil {
 		return err
-	}
-
-	if len(fileChanges) != 1 {
-		return errors.New("failed to disable " + name)
 	}
 
 	return nil
