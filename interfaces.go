@@ -1,6 +1,6 @@
 package interfaces
 
-type Updater interface {
+type MigrationTool interface {
 	IsMigrationNeeded() (bool, error)
 	PreMigrate() error
 	Migrate() error
