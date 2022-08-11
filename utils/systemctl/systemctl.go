@@ -28,6 +28,26 @@ func EnableService(name string) error {
 		return errors.New("failed to enable " + name)
 	}
 
+	// ensure service is enabled
+	properties, err := conn.GetUnitPropertiesContext(ctx, name)
+	if err != nil {
+		return err
+	}
+
+	if properties["ActiveState"] != "active" {
+
+		ch := make(chan string)
+		_, err := conn.StartUnitContext(ctx, name, "replace", ch)
+		if err != nil {
+			return err
+		}
+
+		result := <-ch
+		if result != "done" {
+			return errors.New("failed to start " + name)
+		}
+	}
+
 	return nil
 }
 
