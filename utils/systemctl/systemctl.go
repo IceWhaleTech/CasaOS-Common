@@ -7,6 +7,30 @@ import (
 	"github.com/coreos/go-systemd/v22/dbus"
 )
 
+func IsServiceEnabled(name string) (bool, error) {
+	// connect to systemd
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	conn, err := dbus.NewSystemdConnectionContext(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	defer conn.Close()
+
+	property, err := conn.GetUnitPropertyContext(ctx, name, "UnitFileState")
+	if err != nil {
+		return false, err
+	}
+
+	if property.Value.Value() == "enabled" {
+		return true, nil
+	}
+
+	return false, nil
+}
+
 func EnableService(name string) error {
 	// connect to systemd
 	ctx, cancel := context.WithCancel(context.Background())
