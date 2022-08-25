@@ -27,10 +27,19 @@ func getFileLogWriter(logPath string, logFileName string, logFileExt string) (wr
 	return zapcore.AddSync(lumberJackLogger)
 }
 
+// for unit tests
+func LogInitConsoleOnly() {
+	encoder := getEncoder()
+
+	core := zapcore.NewTee(
+		zapcore.NewCore(encoder, zapcore.AddSync(os.Stdout), zapcore.InfoLevel),
+	)
+	loggers = zap.New(core)
+}
+
 func LogInit(logPath string, logFileName string, logFileExt string) {
-	encoderConfig := zap.NewProductionEncoderConfig()
-	encoderConfig.EncodeTime = zapcore.EpochTimeEncoder
-	encoder := zapcore.NewJSONEncoder(encoderConfig)
+	encoder := getEncoder()
+
 	fileWriteSyncer := getFileLogWriter(logPath, logFileName, logFileExt)
 	core := zapcore.NewTee(
 		zapcore.NewCore(encoder, zapcore.AddSync(os.Stdout), zapcore.InfoLevel),
@@ -61,4 +70,10 @@ func getCallerInfoForLog() (callerFields []zap.Field) {
 
 	callerFields = append(callerFields, zap.String("func", funcName), zap.String("file", file), zap.Int("line", line))
 	return
+}
+
+func getEncoder() zapcore.Encoder {
+	encoderConfig := zap.NewProductionEncoderConfig()
+	encoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+	return zapcore.NewConsoleEncoder(encoderConfig)
 }
