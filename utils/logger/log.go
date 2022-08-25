@@ -29,7 +29,7 @@ func getFileLogWriter(logPath string, logFileName string, logFileExt string) (wr
 
 func LogInit(logPath string, logFileName string, logFileExt string) {
 	encoderConfig := zap.NewProductionEncoderConfig()
-	encoderConfig.EncodeTime = zapcore.EpochTimeEncoder
+	encoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 	encoder := zapcore.NewConsoleEncoder(encoderConfig)
 
 	fileWriteSyncer := getFileLogWriter(logPath, logFileName, logFileExt)
