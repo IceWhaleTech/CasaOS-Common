@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"mime/multipart"
 	"os"
 	"path"
@@ -436,7 +435,7 @@ func AddFile(ar archiver.Writer, path, commonPath string) error {
 		for _, name := range names {
 			err = AddFile(ar, filepath.Join(path, name), commonPath)
 			if err != nil {
-				log.Printf("Failed to archive %v", err)
+				return err
 			}
 		}
 	}
