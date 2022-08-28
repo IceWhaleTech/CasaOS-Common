@@ -1,11 +1,9 @@
 package version
 
 import (
-	"database/sql"
 	"errors"
 	"os"
 	"os/exec"
-	"path/filepath"
 
 	"gopkg.in/ini.v1"
 
@@ -64,12 +62,12 @@ func DetectLegacyVersion() (int, int, int, error) {
 			return 0, 2, 99, nil // 99 means we don't know the patch version.
 		}
 
-		isUserDataInDatabase, err := IsUserDataInDatabase()
+		configKeyDBPathExist, err := IsConfigKeyDBPathExist()
 		if err != nil {
 			return -1, -1, -1, err
 		}
 
-		if !isUserDataInDatabase {
+		if !configKeyDBPathExist {
 			return 0, 3, 0, nil // it could be 0.3.0, 0.3.1 or 0.3.2 but only one version can be returned.
 		}
 
@@ -101,7 +99,7 @@ func DetectMinorVersion() (int, error) {
 }
 
 // Check if user data is stored in database (0.3.3+)
-func IsUserDataInDatabase() (bool, error) {
+func IsConfigKeyDBPathExist() (bool, error) {
 	if _configFile == nil {
 		return false, ErrLegacyVersionNotFound
 	}
@@ -109,30 +107,6 @@ func IsUserDataInDatabase() (bool, error) {
 	if !_configFile.Section("app").HasKey(configKeyDBPath) {
 		return false, nil
 	}
-
-	dbPath := _configFile.Section("app").Key(configKeyDBPath).String()
-
-	dbFile := filepath.Join(dbPath, "db", "casaOS.db")
-
-	if _, err := os.Stat(dbFile); os.IsNotExist(err) {
-		return false, nil
-	}
-
-	db, err := sql.Open("sqlite3", dbFile)
-	if err != nil {
-		return false, err
-	}
-
-	defer db.Close()
-
-	sqlStatement := "SELECT name FROM sqlite_master WHERE type='table' AND name='o_users'"
-
-	rows, err := db.Query(sqlStatement)
-	if err != nil {
-		return false, err
-	}
-
-	defer rows.Close()
 
 	return true, nil
 }
