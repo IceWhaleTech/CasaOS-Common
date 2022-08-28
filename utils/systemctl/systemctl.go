@@ -69,12 +69,12 @@ func EnableService(name string) error {
 	}
 
 	// ensure service is enabled
-	properties, err := conn.GetUnitPropertiesContext(ctx, name)
+	property, err := conn.GetUnitPropertyContext(ctx, name, "ActiveState")
 	if err != nil {
 		return err
 	}
 
-	if properties["ActiveState"] != "active" {
+	if property.Value.Value() != "active" {
 
 		ch := make(chan string)
 		_, err := conn.StartUnitContext(ctx, name, "replace", ch)
