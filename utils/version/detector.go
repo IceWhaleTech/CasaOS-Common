@@ -115,7 +115,7 @@ func IsUserDataInDatabase() (bool, error) {
 	dbFile := filepath.Join(dbPath, "db", "casaOS.db")
 
 	if _, err := os.Stat(dbFile); os.IsNotExist(err) {
-		return false, err
+		return false, nil
 	}
 
 	db, err := sql.Open("sqlite3", dbFile)
