@@ -306,8 +306,8 @@ func CopyDir(src string, dst string, style string) error {
 		return err
 	}
 	for _, fd := range fds {
-		srcfp := path.Join(src, fd.Name())
-		dstfp := dst // path.Join(dst, fd.Name())
+		srcfp := filepath.Join(src, fd.Name())
+		dstfp := dst // filepath.Join(dst, fd.Name())
 
 		if fd.IsDir() {
 			if err = CopyDir(srcfp, dstfp, style); err != nil {

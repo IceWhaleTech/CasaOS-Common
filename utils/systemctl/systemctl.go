@@ -31,6 +31,26 @@ func IsServiceEnabled(name string) (bool, error) {
 	return false, nil
 }
 
+func IsServiceRunning(name string) (bool, error) {
+	// connect to systemd
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	conn, err := dbus.NewSystemdConnectionContext(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	defer conn.Close()
+
+	property, err := conn.GetUnitPropertyContext(ctx, name, "ActiveState")
+	if err != nil {
+		return false, err
+	}
+
+	return property.Value.Value() == "active", nil
+}
+
 func EnableService(name string) error {
 	// connect to systemd
 	ctx, cancel := context.WithCancel(context.Background())
@@ -49,12 +69,12 @@ func EnableService(name string) error {
 	}
 
 	// ensure service is enabled
-	properties, err := conn.GetUnitPropertiesContext(ctx, name)
+	property, err := conn.GetUnitPropertyContext(ctx, name, "ActiveState")
 	if err != nil {
 		return err
 	}
 
-	if properties["ActiveState"] != "active" {
+	if property.Value.Value() != "active" {
 
 		ch := make(chan string)
 		_, err := conn.StartUnitContext(ctx, name, "replace", ch)

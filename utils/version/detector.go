@@ -1,10 +1,9 @@
 package version
 
 import (
-	"database/sql"
 	"errors"
 	"os"
-	"path/filepath"
+	"os/exec"
 
 	"gopkg.in/ini.v1"
 
@@ -12,6 +11,7 @@ import (
 )
 
 const (
+	LegacyCasaOSBinFilePath    = "/usr/bin/casaOS"
 	LegacyCasaOSConfigFilePath = "/etc/casaos.conf"
 	LegacyCasaOSServiceName    = "casaos.service"
 	configKeyUniqueToZero3x    = "USBAutoMount"
@@ -19,6 +19,8 @@ const (
 )
 
 var _configFile *ini.File
+
+var ErrLegacyVersionNotFound = errors.New("legacy version not found")
 
 func init() {
 	if _, err := os.Stat(LegacyCasaOSConfigFilePath); os.IsNotExist(err) {
@@ -33,12 +35,60 @@ func init() {
 	_configFile = _file
 }
 
+func DetectLegacyVersion() (int, int, int, error) {
+	if _configFile == nil {
+		return -1, -1, -1, ErrLegacyVersionNotFound
+	}
+
+	binPath := LegacyCasaOSBinFilePath
+
+	if _, err := os.Stat(LegacyCasaOSBinFilePath); os.IsNotExist(err) {
+		path, err := exec.LookPath("casaos")
+		if err != nil {
+			return -1, -1, -1, ErrLegacyVersionNotFound
+		}
+		binPath = path
+	}
+
+	cmd := exec.Command(binPath, "-v")
+	versionBytes, err := cmd.Output()
+	if err != nil {
+		minorVersion, err := DetectMinorVersion()
+		if err != nil {
+			return -1, -1, -1, err
+		}
+
+		if minorVersion == 2 {
+			return 0, 2, 99, nil // 99 means we don't know the patch version.
+		}
+
+		configKeyDBPathExist, err := IsConfigKeyDBPathExist()
+		if err != nil {
+			return -1, -1, -1, err
+		}
+
+		if !configKeyDBPathExist {
+			return 0, 3, 0, nil // it could be 0.3.0, 0.3.1 or 0.3.2 but only one version can be returned.
+		}
+
+		return 0, 3, 3, nil // it could be 0.3.3 or 0.3.4 but only one version can be returned.
+	}
+
+	versionString := string(versionBytes[:5])
+
+	if versionString == "0.3.5" {
+		return 0, 3, 5, nil
+	}
+
+	return -1, -1, -1, ErrLegacyVersionNotFound
+}
+
 // Detect minor version of CasaOS. It returns 2 for "0.2.x" or 3 for "0.3.x"
 //
 // (This is often useful when failing to get version from API because CasaOS is not running.)
 func DetectMinorVersion() (int, error) {
 	if _configFile == nil {
-		return -1, errors.New("config file not found")
+		return -1, ErrLegacyVersionNotFound
 	}
 
 	if _configFile.Section("server").HasKey(configKeyUniqueToZero3x) {
@@ -48,45 +98,15 @@ func DetectMinorVersion() (int, error) {
 	return 2, nil
 }
 
-// Check if user data is stored in database (true) or in config file (false)
-//
-// (user data is stored in config file for 0.3.0-0.3.2)
-func IsUserDataInDatabase() (bool, error) {
+// Check if user data is stored in database (0.3.3+)
+func IsConfigKeyDBPathExist() (bool, error) {
 	if _configFile == nil {
-		return false, errors.New("config file not found")
+		return false, ErrLegacyVersionNotFound
 	}
 
 	if !_configFile.Section("app").HasKey(configKeyDBPath) {
 		return false, nil
 	}
 
-	dbPath := _configFile.Section("app").Key(configKeyDBPath).String()
-
-	dbFile := filepath.Join(dbPath, "db", "casaOS.db")
-
-	if _, err := os.Stat(dbFile); os.IsNotExist(err) {
-		return false, err
-	}
-
-	db, err := sql.Open("sqlite3", dbFile)
-	if err != nil {
-		return false, err
-	}
-
-	defer db.Close()
-
-	sqlStatement := "SELECT name FROM sqlite_master WHERE type='table' AND name='o_users'"
-
-	rows, err := db.Query(sqlStatement)
-	if err != nil {
-		return false, err
-	}
-
-	defer rows.Close()
-
-	for rows.Next() {
-		return true, nil
-	}
-
-	return false, nil
+	return true, nil
 }
