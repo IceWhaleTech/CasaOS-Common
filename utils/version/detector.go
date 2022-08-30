@@ -19,6 +19,8 @@ const (
 )
 
 var (
+	LegacyCasaOSConfigFilePath = "/etc/casaos.conf"
+
 	_configFile        *ini.File
 	_casaOSBinFilePath string
 )
@@ -61,22 +63,20 @@ func init() {
 	}
 
 	// locate the config file
-	configFilePath := "/etc/casaos.conf"
-
 	if len(texts) > 2 {
 		for i, text := range texts {
 			if text == "-c" {
-				configFilePath = texts[i+1]
+				LegacyCasaOSConfigFilePath = texts[i+1]
 				break
 			}
 		}
 	}
 
-	if _, err := os.Stat(configFilePath); os.IsNotExist(err) {
+	if _, err := os.Stat(LegacyCasaOSConfigFilePath); os.IsNotExist(err) {
 		return
 	}
 
-	_configFile, _ = ini.Load(configFilePath)
+	_configFile, _ = ini.Load(LegacyCasaOSConfigFilePath)
 }
 
 func DetectLegacyVersion() (int, int, int, error) {
