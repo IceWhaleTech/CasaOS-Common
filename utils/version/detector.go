@@ -19,6 +19,7 @@ const (
 )
 
 var (
+	// this value will be updated at init() to actual config file path.
 	LegacyCasaOSConfigFilePath = "/etc/casaos.conf"
 
 	_configFile        *ini.File
