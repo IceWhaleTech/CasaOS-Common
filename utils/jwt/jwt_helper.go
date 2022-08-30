@@ -1,7 +1,6 @@
 package jwt
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -10,7 +9,20 @@ import (
 	"github.com/IceWhaleTech/CasaOS-Common/utils/common_err"
 	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 )
+
+func ExceptLocalhost() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if c.ClientIP() == "::1" || c.ClientIP() == "127.0.0.1" {
+			logger.Info("Bypassing JWT validation for request from localhost.", zap.Any("client_ip", c.ClientIP()))
+			c.Next()
+			return
+		}
+
+		JWT()(c)
+	}
+}
 
 func JWT() gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -50,7 +62,7 @@ func GetAccessToken(username, pwd string, id int) string {
 	if err == nil {
 		return token
 	}
-	logger.Error(fmt.Sprintf("Get Token Fail: %V", err))
+	logger.Error("Get Token Fail", zap.Any("error", err))
 	return ""
 }
 
@@ -59,6 +71,6 @@ func GetRefreshToken(username, pwd string, id int) string {
 	if err == nil {
 		return token
 	}
-	logger.Error(fmt.Sprintf("Get Token Fail: %V", err))
+	logger.Error("Get Token Fail", zap.Any("error", err))
 	return ""
 }
