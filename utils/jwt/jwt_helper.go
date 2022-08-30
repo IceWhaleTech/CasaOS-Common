@@ -10,10 +10,19 @@ import (
 	"github.com/IceWhaleTech/CasaOS-Common/utils/common_err"
 	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 )
 
-func JWT() gin.HandlerFunc {
+func JWT(bypassLocalhost bool) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		if bypassLocalhost {
+			if c.ClientIP() == "::1" || c.ClientIP() == "127.0.0.1" {
+				logger.Info("Bypassing JWT validation because request comes from localhost", zap.Any("ClientIP", c.ClientIP()))
+				c.Next()
+				return
+			}
+		}
+
 		var code int
 		code = common_err.SUCCESS
 		token := c.GetHeader("Authorization")
