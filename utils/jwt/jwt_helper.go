@@ -1,7 +1,6 @@
 package jwt
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -13,16 +12,20 @@ import (
 	"go.uber.org/zap"
 )
 
-func JWT(bypassLocalhost bool) gin.HandlerFunc {
+func ExceptLocalhost() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if bypassLocalhost {
-			if c.ClientIP() == "::1" || c.ClientIP() == "127.0.0.1" {
-				logger.Info("Bypassing JWT validation because request comes from localhost", zap.Any("ClientIP", c.ClientIP()))
-				c.Next()
-				return
-			}
+		if c.ClientIP() == "::1" || c.ClientIP() == "127.0.0.1" {
+			logger.Info("Bypassing JWT validation for request from localhost.", zap.Any("client_ip", c.ClientIP()))
+			c.Next()
+			return
 		}
 
+		JWT()(c)
+	}
+}
+
+func JWT() gin.HandlerFunc {
+	return func(c *gin.Context) {
 		var code int
 		code = common_err.SUCCESS
 		token := c.GetHeader("Authorization")
@@ -59,7 +62,7 @@ func GetAccessToken(username, pwd string, id int) string {
 	if err == nil {
 		return token
 	}
-	logger.Error(fmt.Sprintf("Get Token Fail: %V", err))
+	logger.Error("Get Token Fail", zap.Any("error", err))
 	return ""
 }
 
@@ -68,6 +71,6 @@ func GetRefreshToken(username, pwd string, id int) string {
 	if err == nil {
 		return token
 	}
-	logger.Error(fmt.Sprintf("Get Token Fail: %V", err))
+	logger.Error("Get Token Fail", zap.Any("error", err))
 	return ""
 }
