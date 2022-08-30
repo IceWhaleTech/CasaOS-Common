@@ -49,6 +49,7 @@ func init() {
 	execStart := key.Value()
 	texts := strings.Split(execStart, " ")
 
+	// locaste casaos binary.
 	_casaOSBinFilePath = texts[0]
 
 	if _, err := os.Stat(_casaOSBinFilePath); os.IsNotExist(err) {
@@ -59,11 +60,15 @@ func init() {
 		}
 	}
 
-	var configFilePath string
-	for i, text := range texts {
-		if text == "-c" {
-			configFilePath = texts[i+1]
-			break
+	// locate the config file
+	configFilePath := "/etc/casaos.conf"
+
+	if len(texts) > 2 {
+		for i, text := range texts {
+			if text == "-c" {
+				configFilePath = texts[i+1]
+				break
+			}
 		}
 	}
 
