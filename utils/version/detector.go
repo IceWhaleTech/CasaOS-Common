@@ -4,35 +4,80 @@ import (
 	"errors"
 	"os"
 	"os/exec"
+	"strings"
 
 	"gopkg.in/ini.v1"
 
+	"github.com/IceWhaleTech/CasaOS-Common/utils/file"
 	_ "github.com/mattn/go-sqlite3" // nolint
 )
 
 const (
-	LegacyCasaOSBinFilePath    = "/usr/bin/casaOS"
-	LegacyCasaOSConfigFilePath = "/etc/casaos.conf"
-	LegacyCasaOSServiceName    = "casaos.service"
-	configKeyUniqueToZero3x    = "USBAutoMount"
-	configKeyDBPath            = "DBPath"
+	LegacyCasaOSServiceName = "casaos.service"
+	configKeyUniqueToZero3x = "USBAutoMount"
+	configKeyDBPath         = "DBPath"
 )
 
-var _configFile *ini.File
+var (
+	// this value will be updated at init() to actual config file path.
+	LegacyCasaOSConfigFilePath = "/etc/casaos.conf"
+
+	_configFile        *ini.File
+	_casaOSBinFilePath string
+)
 
 var ErrLegacyVersionNotFound = errors.New("legacy version not found")
 
 func init() {
-	if _, err := os.Stat(LegacyCasaOSConfigFilePath); os.IsNotExist(err) {
+	serviceFilePath := file.FindFirstFile("/etc/systemd", LegacyCasaOSServiceName)
+	if serviceFilePath == "" {
 		return
 	}
 
-	_file, err := ini.Load(LegacyCasaOSConfigFilePath)
+	serviceFile, err := ini.Load(serviceFilePath)
 	if err != nil {
 		return
 	}
 
-	_configFile = _file
+	section, err := serviceFile.GetSection("Service")
+	if err != nil {
+		return
+	}
+
+	key, err := section.GetKey("ExecStart")
+	if err != nil {
+		return
+	}
+
+	execStart := key.Value()
+	texts := strings.Split(execStart, " ")
+
+	// locaste casaos binary.
+	_casaOSBinFilePath = texts[0]
+
+	if _, err := os.Stat(_casaOSBinFilePath); os.IsNotExist(err) {
+		_casaOSBinFilePath, err = exec.LookPath("casaos")
+
+		if err != nil {
+			return
+		}
+	}
+
+	// locate the config file
+	if len(texts) > 2 {
+		for i, text := range texts {
+			if text == "-c" {
+				LegacyCasaOSConfigFilePath = texts[i+1]
+				break
+			}
+		}
+	}
+
+	if _, err := os.Stat(LegacyCasaOSConfigFilePath); os.IsNotExist(err) {
+		return
+	}
+
+	_configFile, _ = ini.Load(LegacyCasaOSConfigFilePath)
 }
 
 func DetectLegacyVersion() (int, int, int, error) {
@@ -40,17 +85,7 @@ func DetectLegacyVersion() (int, int, int, error) {
 		return -1, -1, -1, ErrLegacyVersionNotFound
 	}
 
-	binPath := LegacyCasaOSBinFilePath
-
-	if _, err := os.Stat(LegacyCasaOSBinFilePath); os.IsNotExist(err) {
-		path, err := exec.LookPath("casaos")
-		if err != nil {
-			return -1, -1, -1, ErrLegacyVersionNotFound
-		}
-		binPath = path
-	}
-
-	cmd := exec.Command(binPath, "-v")
+	cmd := exec.Command(_casaOSBinFilePath, "-v")
 	versionBytes, err := cmd.Output()
 	if err != nil {
 		minorVersion, err := DetectMinorVersion()
