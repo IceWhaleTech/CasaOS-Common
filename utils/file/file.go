@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
+	"io/fs"
 	"mime/multipart"
 	"os"
 	"path"
@@ -19,7 +19,7 @@ import (
 
 // GetSize get the file size
 func GetSize(f multipart.File) (int, error) {
-	content, err := ioutil.ReadAll(f)
+	content, err := io.ReadAll(f)
 	return len(content), err
 }
 
@@ -174,7 +174,7 @@ func ReadFullFile(path string) []byte {
 		return []byte("")
 	}
 	defer file.Close()
-	content, err := ioutil.ReadAll(file)
+	content, err := io.ReadAll(file)
 	if err != nil {
 		return []byte("")
 	}
@@ -275,7 +275,6 @@ func GetNoDuplicateFileName(fullPath string) string {
 // Dir copies a whole directory recursively
 func CopyDir(src string, dst string, style string) error {
 	var err error
-	var fds []os.FileInfo
 	var srcinfo os.FileInfo
 
 	if srcinfo, err = os.Stat(src); err != nil {
@@ -302,7 +301,9 @@ func CopyDir(src string, dst string, style string) error {
 	if err = os.MkdirAll(dst, srcinfo.Mode()); err != nil {
 		return err
 	}
-	if fds, err = ioutil.ReadDir(src); err != nil {
+
+	var fds []fs.DirEntry
+	if fds, err = os.ReadDir(src); err != nil {
 		return err
 	}
 	for _, fd := range fds {
@@ -360,7 +361,7 @@ func SpliceFiles(dir, path string, length int, startPoint int) error {
 	defer file.Close()
 	bufferedWriter := bufio.NewWriter(file)
 	for i := 0; i < length+startPoint; i++ {
-		data, err := ioutil.ReadFile(dir + "/" + strconv.Itoa(i+startPoint))
+		data, err := os.ReadFile(dir + "/" + strconv.Itoa(i+startPoint))
 		if err != nil {
 			return err
 		}
