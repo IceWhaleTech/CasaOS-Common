@@ -15,17 +15,16 @@ type GlobalMigrationStatus struct {
 var (
 	GlobalMigrationStatusDirPath = "/var/lib/casaos/migration"
 
-	ErrInvalidVersion     = errors.New("version should start with 'v'")
 	ErrInvalidServiceName = errors.New("service name should not contain space or upper case letter")
 )
 
 func (m *GlobalMigrationStatus) Done(version string) error {
 	// error if version does not start with 'v'
-	if !strings.HasPrefix(version, "v") {
-		return ErrInvalidVersion
+	if strings.HasPrefix(version, "v") {
+		m.LastMigratedVersion = version
+	} else {
+		m.LastMigratedVersion = "v" + version
 	}
-
-	m.LastMigratedVersion = version
 
 	// create runtimePath if not exists
 	if _, err := os.Stat(GlobalMigrationStatusDirPath); os.IsNotExist(err) {
