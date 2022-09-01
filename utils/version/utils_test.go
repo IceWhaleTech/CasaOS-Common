@@ -63,3 +63,63 @@ func TestParseVersion5(t *testing.T) {
 	assert.Equal(t, v4, -1)
 	assert.Equal(t, a, "")
 }
+
+func TestParseVersion6(t *testing.T) {
+	v1, v2, v3, v4, a, err := ParseVersion("")
+
+	if err == nil {
+		t.Error("expected error")
+	}
+
+	assert.Equal(t, v1, -1)
+	assert.Equal(t, v2, -1)
+	assert.Equal(t, v3, -1)
+	assert.Equal(t, v4, -1)
+	assert.Equal(t, a, "")
+}
+
+func TestCompareVersions1(t *testing.T) {
+	r, err := Compare("v1.2.3.4-alpha1", "v1.2.3.4-alpha1")
+	assert.NilError(t, err)
+	assert.Equal(t, r, 0)
+
+	r, err = Compare("v1.2.3.4-alpha1", "v1.2.3.4-alpha2")
+	assert.NilError(t, err)
+	assert.Equal(t, r, -1)
+
+	r, err = Compare("v1.2.3.4-alpha2", "v1.2.3.5-alpha1")
+	assert.NilError(t, err)
+	assert.Equal(t, r, -1)
+
+	r, err = Compare("v1.2.3.4-alpha2", "v1.2.4.4-alpha1")
+	assert.NilError(t, err)
+	assert.Equal(t, r, -1)
+
+	r, err = Compare("v1.2.3.4-alpha2", "v1.3.3.4-alpha1")
+	assert.NilError(t, err)
+	assert.Equal(t, r, -1)
+
+	r, err = Compare("v1.2.3.4-alpha2", "v2.2.3.4-alpha1")
+	assert.NilError(t, err)
+	assert.Equal(t, r, -1)
+
+	r, err = Compare("v1.2.3.4-alpha2", "v1.2.3.4-alpha1")
+	assert.NilError(t, err)
+	assert.Equal(t, r, 1)
+
+	r, err = Compare("v1.2.3.5-alpha2", "v1.2.3.4-alpha1")
+	assert.NilError(t, err)
+	assert.Equal(t, r, 1)
+
+	r, err = Compare("v1.2.4.4-alpha2", "v1.2.3.4-alpha1")
+	assert.NilError(t, err)
+	assert.Equal(t, r, 1)
+
+	r, err = Compare("v1.3.3.4-alpha2", "v1.2.3.4-alpha1")
+	assert.NilError(t, err)
+	assert.Equal(t, r, 1)
+
+	r, err = Compare("v2.2.3.4-alpha2", "v1.2.3.4-alpha1")
+	assert.NilError(t, err)
+	assert.Equal(t, r, 1)
+}

@@ -38,3 +38,57 @@ func ParseVersion(version string) (int, int, int, int, string, error) {
 
 	return va[0], va[1], va[2], va[3], annotation, nil
 }
+
+func Compare(v1, v2 string) (int, error) {
+	a1, a2, a3, a4, aa, err := ParseVersion(v1)
+	if err != nil {
+		return 0, err
+	}
+
+	b1, b2, b3, b4, ba, err := ParseVersion(v2)
+	if err != nil {
+		return 0, err
+	}
+
+	if a1 > b1 {
+		return 1, nil
+	}
+
+	if a1 < b1 {
+		return -1, nil
+	}
+
+	if a2 > b2 {
+		return 1, nil
+	}
+
+	if a2 < b2 {
+		return -1, nil
+	}
+
+	if a3 > b3 {
+		return 1, nil
+	}
+
+	if a3 < b3 {
+		return -1, nil
+	}
+
+	if a4 > b4 {
+		return 1, nil
+	}
+
+	if a4 < b4 {
+		return -1, nil
+	}
+
+	if aa > ba {
+		return 1, nil
+	}
+
+	if aa < ba {
+		return -1, nil
+	}
+
+	return 0, nil
+}
