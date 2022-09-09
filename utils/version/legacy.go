@@ -109,7 +109,7 @@ func DetectLegacyVersion() (int, int, int, error) {
 		return 0, 3, 3, nil // it could be 0.3.3 or 0.3.4 but only one version can be returned.
 	}
 
-	versionString := strings.TrimLeft(string(versionBytes), "v")
+	versionString := strings.TrimLeft(strings.TrimSpace(string(versionBytes)))
 
 	if versionString == "0.3.5" || strings.Contains(versionString, "0.3.5.") {
 		return 0, 3, 5, nil
