@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/IceWhaleTech/CasaOS-Common/model"
 	"github.com/IceWhaleTech/CasaOS-Common/utils/common_err"
@@ -13,13 +14,14 @@ import (
 
 func ExceptLocalhost2(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.RemoteAddr == "::1" || r.RemoteAddr == "127.0.0.1" {
+		clientIP := strings.Split(r.RemoteAddr, ":")[0]
+		if clientIP == "::1" || clientIP == "127.0.0.1" {
 			logger.Info("Bypassing JWT validation for request from localhost.", zap.Any("client_ip", r.RemoteAddr))
 			h.ServeHTTP(w, r)
 			return
 		}
 
-		JWT2(h)
+		JWT2(h).ServeHTTP(w, r)
 	})
 }
 
