@@ -12,7 +12,7 @@ type HandlerMultiplexer struct {
 func (h *HandlerMultiplexer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	parentPath := strings.Split(strings.TrimLeft(r.URL.Path, "/"), "/")[0]
 
-	if handler, ok := h.handlerMap[parentPath]; ok {
+	if handler, ok := h.HandlerMap[parentPath]; ok {
 		handler.ServeHTTP(w, r)
 	}
 }
