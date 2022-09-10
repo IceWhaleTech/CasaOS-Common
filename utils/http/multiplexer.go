@@ -6,7 +6,7 @@ import (
 )
 
 type HandlerMultiplexer struct {
-	handlerMap map[string]http.Handler
+	HandlerMap map[string]http.Handler
 }
 
 func (h *HandlerMultiplexer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
