@@ -73,7 +73,7 @@ func GetRefreshToken(username, pwd string, id int) string {
 	return ""
 }
 
-func validate(token string) (*Claims, int) {
+func Validate(token string) (*Claims, int) {
 	if token == "" {
 		return nil, common_err.INVALID_PARAMS
 	}

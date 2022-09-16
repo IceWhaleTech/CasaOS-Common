@@ -30,7 +30,7 @@ func JWT() gin.HandlerFunc {
 			token = c.Query("token")
 		}
 
-		claims, code := validate(token)
+		claims, code := Validate(token)
 
 		if code != common_err.SUCCESS {
 			c.JSON(http.StatusUnauthorized, model.Result{Success: code, Message: common_err.GetMsg(code)})
