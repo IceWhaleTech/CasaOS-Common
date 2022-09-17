@@ -3,7 +3,10 @@ package jwt
 import (
 	"time"
 
+	"github.com/IceWhaleTech/CasaOS-Common/utils/common_err"
+	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
 	jwt "github.com/golang-jwt/jwt/v4"
+	"go.uber.org/zap"
 )
 
 type Claims struct {
@@ -49,4 +52,39 @@ func ParseToken(token string, valid bool) (*Claims, error) {
 		}
 	}
 	return nil, err
+}
+
+// get AccessToken
+func GetAccessToken(username, pwd string, id int) string {
+	token, err := GenerateToken(username, pwd, id, "casaos", 3*time.Hour*time.Duration(1))
+	if err == nil {
+		return token
+	}
+	logger.Error("Get Token Fail", zap.Any("error", err))
+	return ""
+}
+
+func GetRefreshToken(username, pwd string, id int) string {
+	token, err := GenerateToken(username, pwd, id, "refresh", 7*24*time.Hour*time.Duration(1))
+	if err == nil {
+		return token
+	}
+	logger.Error("Get Token Fail", zap.Any("error", err))
+	return ""
+}
+
+func Validate(token string) (*Claims, int) {
+	if token == "" {
+		return nil, common_err.INVALID_PARAMS
+	}
+
+	claims, err := ParseToken(token, false)
+
+	if err != nil {
+		return nil, common_err.ERROR_AUTH_TOKEN
+	} else if !claims.VerifyExpiresAt(time.Now(), true) || !claims.VerifyIssuer("casaos", true) {
+		return nil, common_err.ERROR_AUTH_TOKEN
+	}
+
+	return claims, common_err.SUCCESS
 }

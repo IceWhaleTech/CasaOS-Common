@@ -3,7 +3,6 @@ package jwt
 import (
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/IceWhaleTech/CasaOS-Common/model"
 	"github.com/IceWhaleTech/CasaOS-Common/utils/common_err"
@@ -26,26 +25,13 @@ func ExceptLocalhost() gin.HandlerFunc {
 
 func JWT() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var code int
-		code = common_err.SUCCESS
 		token := c.GetHeader("Authorization")
 		if len(token) == 0 {
 			token = c.Query("token")
 		}
-		if token == "" {
-			code = common_err.INVALID_PARAMS
-		}
 
-		claims, err := ParseToken(token, false)
+		claims, code := Validate(token)
 
-		//_, err := ParseToken(token)
-		if err != nil {
-			code = common_err.ERROR_AUTH_TOKEN
-		} else if (c.Request.URL.Path == "/v1/file" || c.Request.URL.Path == "/v1/image" || c.Request.URL.Path == "/v1/file/upload" || c.Request.URL.Path == "/v1/batch") && claims.VerifyIssuer("casaos", true) {
-			// Special treatment
-		} else if !claims.VerifyExpiresAt(time.Now(), true) || !claims.VerifyIssuer("casaos", true) {
-			code = common_err.ERROR_AUTH_TOKEN
-		}
 		if code != common_err.SUCCESS {
 			c.JSON(http.StatusUnauthorized, model.Result{Success: code, Message: common_err.GetMsg(code)})
 			c.Abort()
@@ -54,23 +40,4 @@ func JWT() gin.HandlerFunc {
 		c.Request.Header.Add("user_id", strconv.Itoa(claims.ID))
 		c.Next()
 	}
-}
-
-// get AccessToken
-func GetAccessToken(username, pwd string, id int) string {
-	token, err := GenerateToken(username, pwd, id, "casaos", 3*time.Hour*time.Duration(1))
-	if err == nil {
-		return token
-	}
-	logger.Error("Get Token Fail", zap.Any("error", err))
-	return ""
-}
-
-func GetRefreshToken(username, pwd string, id int) string {
-	token, err := GenerateToken(username, pwd, id, "refresh", 7*24*time.Hour*time.Duration(1))
-	if err == nil {
-		return token
-	}
-	logger.Error("Get Token Fail", zap.Any("error", err))
-	return ""
 }
