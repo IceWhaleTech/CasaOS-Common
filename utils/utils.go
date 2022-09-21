@@ -1,6 +1,6 @@
 package utils
 
-func CompareSlices(a, b []interface{}) bool {
+func CompareSlices(a, b []any) bool {
 	if len(a) != len(b) {
 		return false
 	}
