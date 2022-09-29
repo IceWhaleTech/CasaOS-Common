@@ -6,15 +6,12 @@ import (
 
 	"github.com/IceWhaleTech/CasaOS-Common/model"
 	"github.com/IceWhaleTech/CasaOS-Common/utils/common_err"
-	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
 	"github.com/gin-gonic/gin"
-	"go.uber.org/zap"
 )
 
 func ExceptLocalhost() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if c.ClientIP() == "::1" || c.ClientIP() == "127.0.0.1" {
-			logger.Info("Bypassing JWT validation for request from localhost.", zap.Any("client_ip", c.ClientIP()))
 			c.Next()
 			return
 		}
