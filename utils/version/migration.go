@@ -28,12 +28,14 @@ func (m *GlobalMigrationStatus) Done(version string) error {
 
 	// create runtimePath if not exists
 	if _, err := os.Stat(GlobalMigrationStatusDirPath); os.IsNotExist(err) {
-		os.MkdirAll(GlobalMigrationStatusDirPath, 0o755)
+		if err := os.MkdirAll(GlobalMigrationStatusDirPath, 0o755); err != nil {
+			return err
+		}
 	}
 
 	// save m.LastMigratedVersion to filepath
 	filepath := m.GetGlobalMigrationStatusFilePath()
-	return os.WriteFile(filepath, []byte(m.LastMigratedVersion), 0o644)
+	return os.WriteFile(filepath, []byte(m.LastMigratedVersion), 0o644) // nolint: gosec
 }
 
 func GetGlobalMigrationStatus(serviceName string) (*GlobalMigrationStatus, error) {
