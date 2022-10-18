@@ -26,7 +26,10 @@ var (
 	_casaOSBinFilePath string
 )
 
-var ErrLegacyVersionNotFound = errors.New("legacy version not found")
+var (
+	ErrLegacyVersionNotFound = errors.New("legacy version not found")
+	ErrVersionNotFound       = errors.New("version (non-legacy) not found")
+)
 
 func init() {
 	serviceFilePath := file.FindFirstFile("/etc/systemd", LegacyCasaOSServiceName)
@@ -81,41 +84,48 @@ func init() {
 }
 
 func DetectLegacyVersion() (int, int, int, error) {
+	if _, _, _, err := DetectVersion(); err == nil {
+		return -1, -1, -1, ErrLegacyVersionNotFound
+	}
+
 	if _configFile == nil {
 		return -1, -1, -1, ErrLegacyVersionNotFound
 	}
 
+	minorVersion, err := DetectMinorVersion()
+	if err != nil {
+		return -1, -1, -1, err
+	}
+
+	if minorVersion == 2 {
+		return 0, 2, 99, nil // 99 means we don't know the patch version.
+	}
+
+	configKeyDBPathExist, err := IsConfigKeyDBPathExist()
+	if err != nil {
+		return -1, -1, -1, err
+	}
+
+	if !configKeyDBPathExist {
+		return 0, 3, 0, nil // it could be 0.3.0, 0.3.1 or 0.3.2 but only one version can be returned.
+	}
+
+	return 0, 3, 3, nil // it could be 0.3.3 or 0.3.4 but only one version can be returned.
+}
+
+func DetectVersion() (int, int, int, error) {
 	cmd := exec.Command(_casaOSBinFilePath, "-v")
 	versionBytes, err := cmd.Output()
 	if err != nil {
-		minorVersion, err := DetectMinorVersion()
-		if err != nil {
-			return -1, -1, -1, err
-		}
-
-		if minorVersion == 2 {
-			return 0, 2, 99, nil // 99 means we don't know the patch version.
-		}
-
-		configKeyDBPathExist, err := IsConfigKeyDBPathExist()
-		if err != nil {
-			return -1, -1, -1, err
-		}
-
-		if !configKeyDBPathExist {
-			return 0, 3, 0, nil // it could be 0.3.0, 0.3.1 or 0.3.2 but only one version can be returned.
-		}
-
-		return 0, 3, 3, nil // it could be 0.3.3 or 0.3.4 but only one version can be returned.
+		return -1, -1, -1, ErrVersionNotFound
 	}
 
-	versionString := strings.TrimLeft(strings.TrimSpace(string(versionBytes)), "v")
-
-	if versionString == "0.3.5" || strings.Contains(versionString, "0.3.5.") {
-		return 0, 3, 5, nil
+	major, minor, patch, _, _, err := ParseVersion(string(versionBytes))
+	if err != nil {
+		return -1, -1, -1, ErrVersionNotFound
 	}
 
-	return -1, -1, -1, ErrLegacyVersionNotFound
+	return major, minor, patch, nil
 }
 
 // Detect minor version of CasaOS. It returns 2 for "0.2.x" or 3 for "0.3.x"
