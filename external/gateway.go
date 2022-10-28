@@ -92,20 +92,9 @@ func NewManagementService(RuntimePath string) (ManagementService, error) {
 		retry--
 	}
 
-	buf, err := os.ReadFile(managementAddressFile)
+	address, err := getAddress(managementAddressFile)
 	if err != nil {
 		return nil, err
-	}
-
-	address := string(buf)
-
-	response, err := http.Get(address + "/ping")
-	if err != nil {
-		return nil, err
-	}
-
-	if response.StatusCode != 200 {
-		return nil, errors.New("failed to ping management service")
 	}
 
 	return &managementService{
