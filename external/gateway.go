@@ -1,5 +1,5 @@
 // The commmon package provides structs and functions for external code to interact with this gateway service.
-package v1
+package external
 
 import (
 	"bytes"
