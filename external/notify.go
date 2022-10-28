@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"os"
 	"path/filepath"
 	"strings"
 )
@@ -21,11 +20,16 @@ type NotifyService interface {
 	SendSystemStatusNotify(message map[string]interface{}) error
 }
 type notifyService struct {
-	address string
+	addressFile string
 }
 
 func (n *notifyService) SendNotify(path string, message map[string]interface{}) error {
-	url := strings.TrimSuffix(n.address, "/") + APICasaOSNotify + "/" + path
+	address, err := getAddress(n.addressFile)
+	if err != nil {
+		return err
+	}
+
+	url := strings.TrimSuffix(address, "/") + APICasaOSNotify + "/" + path
 	body, err := json.Marshal(message)
 	if err != nil {
 		return err
@@ -44,7 +48,12 @@ func (n *notifyService) SendNotify(path string, message map[string]interface{}) 
 // disk: "sys_disk":{"size":56866869248,"avail":5855485952,"health":true,"used":48099700736}
 // usb:   "sys_usb":[{"name": "sdc","size": 7747397632,"model": "DataTraveler_2.0","avail": 7714418688,"children": null}]
 func (n *notifyService) SendSystemStatusNotify(message map[string]interface{}) error {
-	url := strings.TrimSuffix(n.address, "/") + APICasaOSNotify + "/system_status"
+	address, err := getAddress(n.addressFile)
+	if err != nil {
+		return err
+	}
+
+	url := strings.TrimSuffix(address, "/") + APICasaOSNotify + "/system_status"
 
 	body, err := json.Marshal(message)
 	if err != nil {
@@ -61,26 +70,8 @@ func (n *notifyService) SendSystemStatusNotify(message map[string]interface{}) e
 	return nil
 }
 
-func NewNotifyService(runtimePath string) (NotifyService, error) {
-	casaosAddressFile := filepath.Join(runtimePath, CasaOSURLFilename)
-
-	buf, err := os.ReadFile(casaosAddressFile)
-	if err != nil {
-		return nil, err
-	}
-
-	address := string(buf)
-
-	response, err := http.Get(address + "/ping")
-	if err != nil {
-		return nil, err
-	}
-
-	if response.StatusCode != http.StatusOK {
-		return nil, errors.New("failed to ping casaos service")
-	}
-
+func NewNotifyService(runtimePath string) NotifyService {
 	return &notifyService{
-		address: address,
-	}, nil
+		addressFile: filepath.Join(runtimePath, CasaOSURLFilename),
+	}
 }

@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"os"
 	"path/filepath"
 	"strings"
 )
@@ -19,11 +18,16 @@ type ShareService interface {
 	DeleteShare(id string) error
 }
 type shareService struct {
-	address string
+	addressFile string
 }
 
 func (n *shareService) DeleteShare(id string) error {
-	url := strings.TrimSuffix(n.address, "/") + APICasaOSShare + "/" + id
+	address, err := getAddress(n.addressFile)
+	if err != nil {
+		return err
+	}
+
+	url := strings.TrimSuffix(address, "/") + APICasaOSShare + "/" + id
 	fmt.Println(url)
 	message := "{}"
 	body, err := json.Marshal(message)
@@ -53,26 +57,8 @@ func (n *shareService) DeleteShare(id string) error {
 
 }
 
-func NewShareService(runtimePath string) (ShareService, error) {
-	casaosAddressFile := filepath.Join(runtimePath, CasaOSURLFilename)
-
-	buf, err := os.ReadFile(casaosAddressFile)
-	if err != nil {
-		return nil, err
-	}
-
-	address := string(buf)
-
-	response, err := http.Get(address + "/ping")
-	if err != nil {
-		return nil, err
-	}
-
-	if response.StatusCode != 200 {
-		return nil, errors.New("failed to ping casaos service")
-	}
-
+func NewShareService(runtimePath string) ShareService {
 	return &shareService{
-		address: address,
-	}, nil
+		addressFile: filepath.Join(runtimePath, CasaOSURLFilename),
+	}
 }
