@@ -38,7 +38,7 @@ func (n *notifyService) SendNotify(path string, message map[string]interface{}) 
 	if err != nil {
 		return err
 	}
-
+	defer response.Body.Close()
 	if response.StatusCode != http.StatusOK {
 		return errors.New("failed to send notify (status code: " + fmt.Sprint(response.StatusCode) + ")")
 	}
@@ -63,7 +63,7 @@ func (n *notifyService) SendSystemStatusNotify(message map[string]interface{}) e
 	if err != nil {
 		return err
 	}
-
+	defer response.Body.Close()
 	if response.StatusCode != http.StatusOK {
 		return errors.New("failed to send notify (status code: " + fmt.Sprint(response.StatusCode) + ")")
 	}
