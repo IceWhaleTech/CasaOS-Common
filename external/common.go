@@ -1,9 +1,11 @@
 package external
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"os"
+	"time"
 )
 
 func getAddress(addressFile string) (string, error) {
@@ -14,10 +16,19 @@ func getAddress(addressFile string) (string, error) {
 
 	address := string(buf)
 
-	response, err := http.Get(address + "/ping")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, address+"/ping", nil)
 	if err != nil {
 		return "", err
 	}
+
+	response, err := http.DefaultClient.Do(request)
+	if err != nil {
+		return "", err
+	}
+	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK {
 		return "", errors.New("failed to ping the service as address " + address)
