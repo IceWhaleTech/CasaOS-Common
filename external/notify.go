@@ -2,6 +2,7 @@ package external
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -21,6 +22,7 @@ type NotifyService interface {
 }
 type notifyService struct {
 	addressFile string
+	httpClient  *http.Client
 }
 
 func (n *notifyService) SendNotify(path string, message map[string]interface{}) error {
@@ -34,11 +36,21 @@ func (n *notifyService) SendNotify(path string, message map[string]interface{}) 
 	if err != nil {
 		return err
 	}
-	response, err := http.Post(url, "application/json", bytes.NewBuffer(body))
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(body))
+	if err != nil {
+		return err
+	}
+
+	response, err := n.httpClient.Do(request)
 	if err != nil {
 		return err
 	}
 	defer response.Body.Close()
+
 	if response.StatusCode != http.StatusOK {
 		return errors.New("failed to send notify (status code: " + fmt.Sprint(response.StatusCode) + ")")
 	}
@@ -59,11 +71,21 @@ func (n *notifyService) SendSystemStatusNotify(message map[string]interface{}) e
 	if err != nil {
 		return err
 	}
-	response, err := http.Post(url, "application/json", bytes.NewBuffer(body))
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(body))
+	if err != nil {
+		return err
+	}
+
+	response, err := n.httpClient.Do(request)
 	if err != nil {
 		return err
 	}
 	defer response.Body.Close()
+
 	if response.StatusCode != http.StatusOK {
 		return errors.New("failed to send notify (status code: " + fmt.Sprint(response.StatusCode) + ")")
 	}
@@ -73,5 +95,6 @@ func (n *notifyService) SendSystemStatusNotify(message map[string]interface{}) e
 func NewNotifyService(runtimePath string) NotifyService {
 	return &notifyService{
 		addressFile: filepath.Join(runtimePath, CasaOSURLFilename),
+		httpClient:  &http.Client{Timeout: 5},
 	}
 }
