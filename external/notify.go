@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 const (
@@ -37,7 +38,7 @@ func (n *notifyService) SendNotify(path string, message map[string]interface{}) 
 		return err
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	request, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(body))
@@ -72,7 +73,7 @@ func (n *notifyService) SendSystemStatusNotify(message map[string]interface{}) e
 		return err
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	request, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(body))
@@ -84,11 +85,13 @@ func (n *notifyService) SendSystemStatusNotify(message map[string]interface{}) e
 	if err != nil {
 		return err
 	}
-	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK {
 		return errors.New("failed to send notify (status code: " + fmt.Sprint(response.StatusCode) + ")")
 	}
+
+	response.Body.Close()
+
 	return nil
 }
 
