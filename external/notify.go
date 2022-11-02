@@ -95,6 +95,6 @@ func (n *notifyService) SendSystemStatusNotify(message map[string]interface{}) e
 func NewNotifyService(runtimePath string) NotifyService {
 	return &notifyService{
 		addressFile: filepath.Join(runtimePath, CasaOSURLFilename),
-		httpClient:  &http.Client{Timeout: 5},
+		httpClient:  &http.Client{Timeout: 30},
 	}
 }
