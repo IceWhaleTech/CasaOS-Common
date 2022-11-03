@@ -23,7 +23,6 @@ type NotifyService interface {
 }
 type notifyService struct {
 	addressFile string
-	httpClient  *http.Client
 }
 
 func (n *notifyService) SendNotify(path string, message map[string]interface{}) error {
@@ -46,7 +45,7 @@ func (n *notifyService) SendNotify(path string, message map[string]interface{}) 
 		return err
 	}
 
-	response, err := n.httpClient.Do(request)
+	response, err := http.DefaultClient.Do(request)
 	if err != nil {
 		return err
 	}
@@ -81,16 +80,15 @@ func (n *notifyService) SendSystemStatusNotify(message map[string]interface{}) e
 		return err
 	}
 
-	response, err := n.httpClient.Do(request)
+	response, err := http.DefaultClient.Do(request)
 	if err != nil {
 		return err
 	}
+	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK {
 		return errors.New("failed to send notify (status code: " + fmt.Sprint(response.StatusCode) + ")")
 	}
-
-	response.Body.Close()
 
 	return nil
 }
@@ -98,6 +96,5 @@ func (n *notifyService) SendSystemStatusNotify(message map[string]interface{}) e
 func NewNotifyService(runtimePath string) NotifyService {
 	return &notifyService{
 		addressFile: filepath.Join(runtimePath, CasaOSURLFilename),
-		httpClient:  &http.Client{},
 	}
 }

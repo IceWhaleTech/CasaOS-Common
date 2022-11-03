@@ -3,6 +3,7 @@ package external
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -38,10 +39,19 @@ func (m *managementService) CreateRoute(route *model.Route) error {
 		return err
 	}
 
-	response, err := http.Post(url, "application/json", bytes.NewBuffer(body)) //nolint:gosec
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(body))
 	if err != nil {
 		return err
 	}
+
+	response, err := http.DefaultClient.Do(request)
+	if err != nil {
+		return err
+	}
+	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusCreated {
 		return errors.New("failed to create route (status code: " + fmt.Sprint(response.StatusCode) + ")")

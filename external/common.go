@@ -16,7 +16,7 @@ func getAddress(addressFile string) (string, error) {
 
 	address := string(buf)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, address+"/ping", nil)
