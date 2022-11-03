@@ -1,13 +1,14 @@
 package external
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"path/filepath"
 	"strings"
+	"time"
+
+	http2 "github.com/IceWhaleTech/CasaOS-Common/utils/http"
 )
 
 const (
@@ -29,22 +30,8 @@ func (n *shareService) DeleteShare(id string) error {
 
 	url := strings.TrimSuffix(address, "/") + APICasaOSShare + "/" + id
 	fmt.Println(url)
-	message := "{}"
-	body, err := json.Marshal(message)
-	if err != nil {
-		return err
-	}
 
-	client := &http.Client{}
-
-	// Create request
-	req, err := http.NewRequest("DELETE", url, bytes.NewBuffer(body))
-	if err != nil {
-		return err
-	}
-
-	// Fetch Request
-	response, err := client.Do(req)
+	response, err := http2.Delete(url, []byte("{}"), 30*time.Second)
 	if err != nil {
 		return err
 	}
@@ -54,7 +41,6 @@ func (n *shareService) DeleteShare(id string) error {
 		return errors.New("failed to send share (status code: " + fmt.Sprint(response.StatusCode) + ")")
 	}
 	return nil
-
 }
 
 func NewShareService(runtimePath string) ShareService {

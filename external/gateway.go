@@ -2,8 +2,6 @@
 package external
 
 import (
-	"bytes"
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -14,6 +12,7 @@ import (
 	"time"
 
 	"github.com/IceWhaleTech/CasaOS-Common/model"
+	http2 "github.com/IceWhaleTech/CasaOS-Common/utils/http"
 )
 
 const (
@@ -39,15 +38,7 @@ func (m *managementService) CreateRoute(route *model.Route) error {
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-
-	request, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(body))
-	if err != nil {
-		return err
-	}
-
-	response, err := http.DefaultClient.Do(request)
+	response, err := http2.Post(url, body, 30*time.Second)
 	if err != nil {
 		return err
 	}
@@ -67,13 +58,7 @@ func (m *managementService) ChangePort(request *model.ChangePortRequest) error {
 		return err
 	}
 
-	req, err := http.NewRequest(http.MethodPut, url, bytes.NewBuffer(body))
-	if err != nil {
-		return err
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	response, err := http.DefaultClient.Do(req)
+	response, err := http2.Put(url, body, 30*time.Second)
 	if err != nil {
 		return err
 	}
