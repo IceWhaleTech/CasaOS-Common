@@ -10,6 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	http2 "github.com/IceWhaleTech/CasaOS-Common/utils/http"
 )
 
 const (
@@ -72,15 +74,7 @@ func (n *notifyService) SendSystemStatusNotify(message map[string]interface{}) e
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	request, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(body))
-	if err != nil {
-		return err
-	}
-
-	response, err := http.DefaultClient.Do(request)
+	response, err := http2.Post(url, body, 5*time.Second)
 	if err != nil {
 		return err
 	}

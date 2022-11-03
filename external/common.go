@@ -1,11 +1,12 @@
 package external
 
 import (
-	"context"
 	"errors"
 	"net/http"
 	"os"
 	"time"
+
+	http2 "github.com/IceWhaleTech/CasaOS-Common/utils/http"
 )
 
 func getAddress(addressFile string) (string, error) {
@@ -13,18 +14,9 @@ func getAddress(addressFile string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-
 	address := string(buf)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-
-	request, err := http.NewRequestWithContext(ctx, http.MethodGet, address+"/ping", nil)
-	if err != nil {
-		return "", err
-	}
-
-	response, err := http.DefaultClient.Do(request)
+	response, err := http2.Get(address+"/ping", 30*time.Second)
 	if err != nil {
 		return "", err
 	}
