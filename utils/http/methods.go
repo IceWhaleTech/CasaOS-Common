@@ -1,3 +1,4 @@
+// methods in this package automatically include a context with a timeout, in order to solve the problem of hanging requests and to avoid goroutine leaks
 package http
 
 import (
