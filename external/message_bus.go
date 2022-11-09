@@ -10,11 +10,11 @@ const (
 	APIMessageBus            = "/v2/message_bus"
 )
 
-func GetMessageBusAddress(runtimePath string) (string, error) {
+func GetMessageBusAddress(runtimePath string) string {
 	address, err := getAddress(filepath.Join(runtimePath, MessageBusAddresFilename))
 	if err != nil {
-		return "", err
+		return ""
 	}
 
-	return strings.TrimRight(address, "/") + APIMessageBus, nil
+	return strings.TrimRight(address, "/") + APIMessageBus
 }
