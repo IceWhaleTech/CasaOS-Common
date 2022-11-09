@@ -27,3 +27,7 @@ func CompareStringSlices(a, b []string) bool {
 
 	return true
 }
+
+func StringPtr(s string) *string {
+	return &s
+}
