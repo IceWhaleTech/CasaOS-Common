@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	MessageBusAddressFilename = "message_bus.url"
+	MessageBusAddressFilename = "message-bus.url"
 	APIMessageBus             = "/v2/message_bus"
 )
 
