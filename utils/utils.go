@@ -28,6 +28,6 @@ func CompareStringSlices(a, b []string) bool {
 	return true
 }
 
-func StringPtr(s string) *string {
-	return &s
+func Ptr[T any](v T) *T {
+	return &v
 }
