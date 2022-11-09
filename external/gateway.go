@@ -92,6 +92,10 @@ func NewManagementService(RuntimePath string) (ManagementService, error) {
 		return nil, err
 	}
 
+	if err := ping(address, 30*time.Second); err != nil {
+		return nil, err
+	}
+
 	return &managementService{
 		address: address,
 	}, nil
