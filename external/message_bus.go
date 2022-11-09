@@ -6,12 +6,12 @@ import (
 )
 
 const (
-	MessageBusAddresFilename = "message_bus.url"
-	APIMessageBus            = "/v2/message_bus"
+	MessageBusAddressFilename = "message_bus.url"
+	APIMessageBus             = "/v2/message_bus"
 )
 
 func GetMessageBusAddress(runtimePath string) (string, error) {
-	address, err := getAddress(filepath.Join(runtimePath, MessageBusAddresFilename))
+	address, err := getAddress(filepath.Join(runtimePath, MessageBusAddressFilename))
 	if err != nil {
 		return "", err
 	}
