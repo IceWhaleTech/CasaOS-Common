@@ -329,12 +329,17 @@ func WriteToPath(data []byte, path, name string) error {
 	} else {
 		fullPath += "/" + name
 	}
+	return WriteToFullPath(data, fullPath, 0o666)
+}
+
+func WriteToFullPath(data []byte, fullPath string, perm fs.FileMode) error {
 	if err := IsNotExistCreateFile(fullPath); err != nil {
 		return err
 	}
+
 	file, err := os.OpenFile(fullPath,
 		os.O_WRONLY|os.O_TRUNC|os.O_CREATE,
-		0o666,
+		perm,
 	)
 	if err != nil {
 		return err
