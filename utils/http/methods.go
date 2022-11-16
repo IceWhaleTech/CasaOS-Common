@@ -26,8 +26,20 @@ func Do(requestFunc func(ctx context.Context) (*http.Request, error), timeout ti
 }
 
 func Get(url string, timeout time.Duration) (*http.Response, error) {
+	return GetWitHeader(url, timeout, nil)
+}
+
+func GetWitHeader(url string, timeout time.Duration, header map[string]string) (*http.Response, error) {
 	return Do(func(ctx context.Context) (*http.Request, error) {
-		return http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+		request, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+		if err != nil {
+			return nil, err
+		}
+
+		for k, v := range header {
+			request.Header.Set(k, v)
+		}
+		return request, nil
 	}, timeout)
 }
 
