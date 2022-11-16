@@ -44,13 +44,19 @@ func GetWitHeader(url string, timeout time.Duration, header map[string]string) (
 }
 
 func Post(url string, body []byte, timeout time.Duration) (*http.Response, error) {
+	return PostWithHeader(url, body, timeout, nil)
+}
+
+func PostWithHeader(url string, body []byte, timeout time.Duration, header map[string]string) (*http.Response, error) {
 	return Do(func(ctx context.Context) (*http.Request, error) {
 		request, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(body))
 		if err != nil {
 			return nil, err
 		}
 
-		request.Header.Set("Content-Type", "application/json")
+		for k, v := range header {
+			request.Header.Set(k, v)
+		}
 
 		return request, nil
 	}, timeout)
