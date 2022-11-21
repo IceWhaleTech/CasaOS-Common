@@ -130,3 +130,18 @@ func DisableService(name string) error {
 
 	return nil
 }
+
+func ReloadDaemon() error {
+	// connect to systemd
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	conn, err := dbus.NewSystemdConnectionContext(ctx)
+	if err != nil {
+		return err
+	}
+
+	defer conn.Close()
+
+	return conn.ReloadContext(ctx)
+}
