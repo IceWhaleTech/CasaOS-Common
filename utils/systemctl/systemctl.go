@@ -3,13 +3,50 @@ package systemctl
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/coreos/go-systemd/v22/dbus"
 )
 
+var (
+	// `done` indicates successful execution of a job.
+	ResultDone = "done"
+
+	// `canceled` indicates that a job has been canceled before it finished execution.
+	ResultCanceled = "canceled"
+	ErrorCanceled  = errors.New("job has been canceled before it finished execution")
+
+	// `timeout` indicates that the job timeout was reached.
+	ResultTimeout = "timeout"
+	ErrorTimeout  = errors.New("job timeout was reached")
+
+	// `failed` indicates that the job failed.
+	ResultFailed = "failed"
+	ErrorFailed  = errors.New("job failed")
+
+	// `dependency` indicates that a job this job has been depending on failed and the job hence has been removed too.
+	ResultDependency = "dependency"
+	ErrorDependency  = errors.New("another job this job has been depending on failed and the job hence has been removed too")
+
+	// `skipped` indicates that a job was skipped because it didn't apply to the units current state.
+	ResultSkipped = "skipped"
+	ErrorSkipped  = errors.New("job was skipped because it didn't apply to the units current state")
+
+	ErrorMap = map[string]error{
+		ResultDone:       nil,
+		ResultCanceled:   ErrorCanceled,
+		ResultTimeout:    ErrorTimeout,
+		ResultFailed:     ErrorFailed,
+		ResultDependency: ErrorDependency,
+		ResultSkipped:    ErrorSkipped,
+	}
+
+	ErrorUnknown = errors.New("unknown error")
+)
+
 func IsServiceEnabled(name string) (bool, error) {
 	// connect to systemd
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	conn, err := dbus.NewSystemdConnectionContext(ctx)
@@ -33,7 +70,7 @@ func IsServiceEnabled(name string) (bool, error) {
 
 func IsServiceRunning(name string) (bool, error) {
 	// connect to systemd
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	conn, err := dbus.NewSystemdConnectionContext(ctx)
@@ -53,7 +90,7 @@ func IsServiceRunning(name string) (bool, error) {
 
 func EnableService(name string) error {
 	// connect to systemd
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	conn, err := dbus.NewSystemdConnectionContext(ctx)
@@ -75,17 +112,7 @@ func EnableService(name string) error {
 	}
 
 	if property.Value.Value() != "active" {
-
-		ch := make(chan string)
-		_, err := conn.StartUnitContext(ctx, name, "replace", ch)
-		if err != nil {
-			return err
-		}
-
-		result := <-ch
-		if result != "done" {
-			return errors.New("failed to start " + name)
-		}
+		return StartService(name)
 	}
 
 	return nil
@@ -93,7 +120,7 @@ func EnableService(name string) error {
 
 func DisableService(name string) error {
 	// connect to systemd
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	conn, err := dbus.NewSystemdConnectionContext(ctx)
@@ -110,17 +137,7 @@ func DisableService(name string) error {
 	}
 
 	if properties["ActiveState"] == "active" {
-
-		ch := make(chan string)
-		_, err := conn.StopUnitContext(ctx, name, "replace", ch)
-		if err != nil {
-			return err
-		}
-
-		result := <-ch
-		if result != "done" {
-			return errors.New("failed to stop " + name)
-		}
+		return StopService(name)
 	}
 
 	_, err = conn.DisableUnitFilesContext(ctx, []string{name}, false)
@@ -131,9 +148,71 @@ func DisableService(name string) error {
 	return nil
 }
 
+func StartService(name string) error {
+	// connect to systemd
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	conn, err := dbus.NewSystemdConnectionContext(ctx)
+	if err != nil {
+		return err
+	}
+
+	defer conn.Close()
+
+	ch := make(chan string)
+	_, err = conn.StartUnitContext(ctx, name, "replace", ch)
+	if err != nil {
+		return err
+	}
+
+	result := <-ch
+	if result != ResultDone {
+		err, ok := ErrorMap[result]
+		if !ok {
+			return ErrorUnknown
+		}
+
+		return err
+	}
+
+	return nil
+}
+
+func StopService(name string) error {
+	// connect to systemd
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	conn, err := dbus.NewSystemdConnectionContext(ctx)
+	if err != nil {
+		return err
+	}
+
+	defer conn.Close()
+
+	ch := make(chan string)
+	_, err = conn.StopUnitContext(ctx, name, "replace", ch)
+	if err != nil {
+		return err
+	}
+
+	result := <-ch
+	if result != ResultDone {
+		err, ok := ErrorMap[result]
+		if !ok {
+			return ErrorUnknown
+		}
+
+		return err
+	}
+
+	return nil
+}
+
 func ReloadDaemon() error {
 	// connect to systemd
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	conn, err := dbus.NewSystemdConnectionContext(ctx)
