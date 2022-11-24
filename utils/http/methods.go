@@ -31,10 +31,10 @@ func Do(requestFunc func(ctx context.Context) (*http.Request, error), timeout ti
 }
 
 func Get(url string, timeout time.Duration) (*http.Response, error) {
-	return GetWitHeader(url, timeout, nil)
+	return GetWithHeader(url, timeout, nil)
 }
 
-func GetWitHeader(url string, timeout time.Duration, header map[string]string) (*http.Response, error) {
+func GetWithHeader(url string, timeout time.Duration, header map[string]string) (*http.Response, error) {
 	return Do(func(ctx context.Context) (*http.Request, error) {
 		request, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 		if err != nil {
