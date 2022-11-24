@@ -43,16 +43,20 @@ func GetWitHeader(url string, timeout time.Duration, header map[string]string) (
 	}, timeout)
 }
 
+// default header "Content-Type: application/json" is included.
 func Post(url string, body []byte, timeout time.Duration) (*http.Response, error) {
 	return PostWithHeader(url, body, timeout, nil)
 }
 
+// default header "Content-Type: application/json" is included.
 func PostWithHeader(url string, body []byte, timeout time.Duration, header map[string]string) (*http.Response, error) {
 	return Do(func(ctx context.Context) (*http.Request, error) {
 		request, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(body))
 		if err != nil {
 			return nil, err
 		}
+
+		request.Header.Set("Content-Type", "application/json")
 
 		for k, v := range header {
 			request.Header.Set(k, v)
@@ -62,6 +66,7 @@ func PostWithHeader(url string, body []byte, timeout time.Duration, header map[s
 	}, timeout)
 }
 
+// default header "Content-Type: application/json" is included.
 func Put(url string, body []byte, timeout time.Duration) (*http.Response, error) {
 	return Do(func(ctx context.Context) (*http.Request, error) {
 		request, err := http.NewRequestWithContext(ctx, http.MethodPut, url, bytes.NewBuffer(body))
@@ -75,6 +80,7 @@ func Put(url string, body []byte, timeout time.Duration) (*http.Response, error)
 	}, timeout)
 }
 
+// default header "Content-Type: application/json" is included.
 func Delete(url string, body []byte, timeout time.Duration) (*http.Response, error) {
 	return Do(func(ctx context.Context) (*http.Request, error) {
 		request, err := http.NewRequestWithContext(ctx, http.MethodDelete, url, bytes.NewBuffer(body))
