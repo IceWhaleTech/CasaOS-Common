@@ -10,7 +10,12 @@ import (
 
 func Do(requestFunc func(ctx context.Context) (*http.Request, error), timeout time.Duration) (*http.Response, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
+	defer func() {
+		if timeout == 0 {
+			// cancel immediately when this func returns, if timeout is not set
+			cancel()
+		}
+	}()
 
 	request, err := requestFunc(ctx)
 	if err != nil {
