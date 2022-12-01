@@ -42,7 +42,10 @@ var CommonJWTConfiguration = echo_middleware.JWTConfig{
 	},
 	TokenLookupFuncs: []echo_middleware.ValuesExtractor{
 		func(c echo.Context) ([]string, error) {
-			return []string{c.Request().Header.Get(echo.HeaderAuthorization)}, nil
+			return []string{
+				c.Request().Header.Get(echo.HeaderAuthorization),
+				c.Request().URL.Query()["token"][0],
+			}, nil
 		},
 	},
 }
