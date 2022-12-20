@@ -20,9 +20,8 @@ import (
 
 func Cors() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		method := c.Request.Method
-
-		c.Header("Access-Control-Allow-Origin", "*")
+		origin := c.Request.Header.Get("Origin")
+		c.Header("Access-Control-Allow-Origin", origin)
 		c.Header("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE,UPDATE")
 		// 允许跨域设置可以返回其他子段，可以自定义字段
 		c.Header("Access-Control-Allow-Headers", "Authorization, Content-Length, X-CSRF-Token, Token,session,Language,Content-Type,Access-Control-Allow-Origin,Access-Control-Allow-Headers,Access-Control-Allow-Methods,Connection,Host,Origin,Referer,User-Agent,X-Requested-With")
@@ -36,10 +35,10 @@ func Cors() gin.HandlerFunc {
 		//}
 
 		// 允许类型校验
-		if method == "OPTIONS" {
+		if c.Request.Method == "OPTIONS" {
 			c.JSON(http.StatusOK, "ok!")
 		}
-
+		c.Request.Header.Del("Origin")
 		defer func() {
 			if err := recover(); err != nil {
 				fmt.Println(err)
