@@ -1,4 +1,4 @@
-name: Test and coverage
+name: Collect Code Coverage
 
 on: [push, pull_request]
 
