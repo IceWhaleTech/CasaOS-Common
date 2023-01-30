@@ -88,7 +88,7 @@ func ListServices(pattern string) ([]Service, error) {
 
 		services = append(services, Service{
 			Name:    serviceName,
-			Running: err == nil || running,
+			Running: err == nil && running,
 		})
 	}
 
