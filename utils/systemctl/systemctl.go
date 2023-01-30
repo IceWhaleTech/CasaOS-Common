@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/coreos/go-systemd/v22/dbus"
+	"github.com/samber/lo"
 )
 
 var (
@@ -43,6 +44,49 @@ var (
 
 	ErrorUnknown = errors.New("unknown error")
 )
+
+type Service struct {
+	Name   string
+	Status string
+}
+
+func ListServices(pattern string) ([]Service, error) {
+	// connect to systemd
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	conn, err := dbus.NewSystemdConnectionContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	defer conn.Close()
+
+	var units []dbus.UnitStatus
+
+	if pattern == "" || pattern == "*" {
+		_units, err := conn.ListUnitsContext(ctx)
+		if err != nil {
+			return nil, err
+		}
+		units = _units
+	} else {
+		_units, err := conn.ListUnitsByPatternsContext(ctx, nil, []string{pattern})
+		if err != nil {
+			return nil, err
+		}
+		units = _units
+	}
+
+	services := lo.Map(units, func(unit dbus.UnitStatus, i int) Service {
+		return Service{
+			Name:   unit.Name,
+			Status: unit.SubState,
+		}
+	})
+
+	return services, nil
+}
 
 func IsServiceEnabled(name string) (bool, error) {
 	// connect to systemd
