@@ -3,6 +3,7 @@ package systemctl
 import (
 	"context"
 	"errors"
+	"path/filepath"
 	"time"
 
 	"github.com/coreos/go-systemd/v22/dbus"
@@ -43,6 +44,56 @@ var (
 
 	ErrorUnknown = errors.New("unknown error")
 )
+
+type Service struct {
+	Name    string
+	Running bool
+}
+
+func ListServices(pattern string) ([]Service, error) {
+	// connect to systemd
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	conn, err := dbus.NewSystemdConnectionContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	defer conn.Close()
+
+	var files []dbus.UnitFile
+
+	if pattern == "" || pattern == "*" {
+		_files, err := conn.ListUnitFilesContext(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		files = _files
+	} else {
+		_files, err := conn.ListUnitFilesByPatternsContext(ctx, nil, []string{pattern})
+		if err != nil {
+			return nil, err
+		}
+		files = _files
+	}
+
+	services := make([]Service, 0, len(files))
+
+	for _, file := range files {
+		serviceName := filepath.Base(file.Path)
+
+		running, err := IsServiceRunning(serviceName)
+
+		services = append(services, Service{
+			Name:    serviceName,
+			Running: err == nil && running,
+		})
+	}
+
+	return services, nil
+}
 
 func IsServiceEnabled(name string) (bool, error) {
 	// connect to systemd
