@@ -3,10 +3,10 @@ package systemctl
 import (
 	"context"
 	"errors"
+	"path/filepath"
 	"time"
 
 	"github.com/coreos/go-systemd/v22/dbus"
-	"github.com/samber/lo"
 )
 
 var (
@@ -46,8 +46,8 @@ var (
 )
 
 type Service struct {
-	Name   string
-	Status string
+	Name    string
+	Running bool
 }
 
 func ListServices(pattern string) ([]Service, error) {
@@ -62,28 +62,35 @@ func ListServices(pattern string) ([]Service, error) {
 
 	defer conn.Close()
 
-	var units []dbus.UnitStatus
+	var files []dbus.UnitFile
 
 	if pattern == "" || pattern == "*" {
-		_units, err := conn.ListUnitsContext(ctx)
+		_files, err := conn.ListUnitFilesContext(ctx)
 		if err != nil {
 			return nil, err
 		}
-		units = _units
+
+		files = _files
 	} else {
-		_units, err := conn.ListUnitsByPatternsContext(ctx, nil, []string{pattern})
+		_files, err := conn.ListUnitFilesByPatternsContext(ctx, nil, []string{pattern})
 		if err != nil {
 			return nil, err
 		}
-		units = _units
+		files = _files
 	}
 
-	services := lo.Map(units, func(unit dbus.UnitStatus, i int) Service {
-		return Service{
-			Name:   unit.Name,
-			Status: unit.SubState,
-		}
-	})
+	services := make([]Service, 0, len(files))
+
+	for _, file := range files {
+		serviceName := filepath.Base(file.Path)
+
+		running, err := IsServiceRunning(serviceName)
+
+		services = append(services, Service{
+			Name:    serviceName,
+			Running: err == nil || running,
+		})
+	}
 
 	return services, nil
 }
