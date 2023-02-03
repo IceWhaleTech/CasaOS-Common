@@ -27,4 +27,8 @@ jobs:
 
       - name: Test
         run: |
-          aws sts get-caller-identity
+          aws ecr describe-repositories 
+
+      - name: Docker Login
+        run: |
+          aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 333681760334.dkr.ecr.us-east-1.amazonaws.com
