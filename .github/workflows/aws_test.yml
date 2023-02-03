@@ -25,6 +25,10 @@ jobs:
           role-to-assume: arn:aws:iam::333681760334:role/icewhale-iam-role-github-action
           aws-region: us-east-1
 
-      - name: Docker Login
+      - name: Test ECR Permission
+        run: |
+          aws ecr describe-repositories 
+
+      - name: Test Docker Login
         run: |
           aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 333681760334.dkr.ecr.us-east-1.amazonaws.com
