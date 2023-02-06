@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/IceWhaleTech/CasaOS-Common/model/notify"
 	http2 "github.com/IceWhaleTech/CasaOS-Common/utils/http"
 )
 
@@ -21,8 +20,6 @@ const (
 type NotifyService interface {
 	SendNotify(path string, message interface{}) error
 	SendSystemStatusNotify(message map[string]interface{}) error
-	SendInstallAppBySocket(app notify.Application) error
-	SendUninstallAppBySocket(app notify.Application) error
 }
 type notifyService struct {
 	addressFile string
@@ -58,14 +55,6 @@ func (n *notifyService) SendNotify(path string, message interface{}) error {
 // usb:   "sys_usb":[{"name": "sdc","size": 7747397632,"model": "DataTraveler_2.0","avail": 7714418688,"children": null}]
 func (n *notifyService) SendSystemStatusNotify(message map[string]interface{}) error {
 	return n.SendNotify("system_status", message)
-}
-
-func (n *notifyService) SendInstallAppBySocket(app notify.Application) error {
-	return n.SendNotify("install_app", app)
-}
-
-func (n *notifyService) SendUninstallAppBySocket(app notify.Application) error {
-	return n.SendNotify("uninstall_app", app)
 }
 
 func NewNotifyService(runtimePath string) NotifyService {
