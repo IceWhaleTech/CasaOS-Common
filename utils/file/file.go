@@ -672,3 +672,14 @@ func ParseLine(line string, sep string) (key string, value string, err error) {
 	value = strings.Replace(value, "\\`", "`", -1)
 	return
 }
+func NameAccumulation(path string) string {
+	dir, file := filepath.Split(path)
+	ext := filepath.Ext(file)
+	base := file[0 : len(file)-len(ext)]
+	for i := 1; ; i++ {
+		newPath := filepath.Join(dir, fmt.Sprintf("%s(%d)%s", base, i, ext))
+		if _, err := os.Stat(newPath); os.IsNotExist(err) {
+			return newPath
+		}
+	}
+}
