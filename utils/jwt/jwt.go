@@ -1,27 +1,23 @@
 package jwt
 
 import (
+	"crypto/ecdsa"
+	"errors"
+	"fmt"
 	"time"
 
-	"github.com/IceWhaleTech/CasaOS-Common/utils/common_err"
-	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
 	jwt "github.com/golang-jwt/jwt/v4"
-	"go.uber.org/zap"
 )
 
 type Claims struct {
 	Username string `json:"username"`
-	Password string `json:"password"`
 	ID       int    `json:"id"`
 	jwt.RegisteredClaims
 }
 
-func GenerateToken(username, password string, id int, issuer string, t time.Duration) (string, error) {
-	var secret []byte // TODO: need to use some global secret accessible by all CasaOS services
-
+func GenerateToken(username string, privateKey *ecdsa.PrivateKey, id int, issuer string, t time.Duration) (string, error) {
 	claims := Claims{
 		username,
-		password,
 		id,
 		jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(t)),
@@ -31,60 +27,47 @@ func GenerateToken(username, password string, id int, issuer string, t time.Dura
 		},
 	}
 
-	tokenClaims := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	token, err := tokenClaims.SignedString(secret)
-	return token, err
+	token := jwt.NewWithClaims(jwt.SigningMethodES256, claims)
+	signedToken, err := token.SignedString(privateKey)
+	return signedToken, err
 }
 
-func ParseToken(token string, valid bool) (*Claims, error) {
-	var secret []byte // TODO: need to use some global secret accessible by all CasaOS services
-
-	tokenClaims, err := jwt.ParseWithClaims(token, &Claims{}, func(token *jwt.Token) (interface{}, error) {
-		return secret, nil
-	})
-	if tokenClaims != nil {
-		if claims, ok := tokenClaims.Claims.(*Claims); ok {
-			if valid && tokenClaims.Valid {
-				return claims, nil
-			} else if !valid {
-				return claims, nil
-			}
+func ParseToken(signedToken string, publicKey *ecdsa.PublicKey) (*Claims, error) {
+	token, err := jwt.ParseWithClaims(signedToken, &Claims{}, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodECDSA); !ok {
+			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
 		}
+		return publicKey, nil
+	})
+	if err != nil {
+		return nil, err
 	}
-	return nil, err
+
+	if claims, ok := token.Claims.(*Claims); ok && token.Valid {
+		return claims, nil
+	}
+
+	return nil, errors.New("invalid token")
 }
 
 // get AccessToken
-func GetAccessToken(username, pwd string, id int) string {
-	token, err := GenerateToken(username, pwd, id, "casaos", 3*time.Hour*time.Duration(1))
-	if err == nil {
-		return token
-	}
-	logger.Error("Get Token Fail", zap.Any("error", err))
-	return ""
+func GetAccessToken(username string, privateKey *ecdsa.PrivateKey, id int) (string, error) {
+	return GenerateToken(username, privateKey, id, "casaos", 3*time.Hour)
 }
 
-func GetRefreshToken(username, pwd string, id int) string {
-	token, err := GenerateToken(username, pwd, id, "refresh", 7*24*time.Hour*time.Duration(1))
-	if err == nil {
-		return token
-	}
-	logger.Error("Get Token Fail", zap.Any("error", err))
-	return ""
+func GetRefreshToken(username string, private *ecdsa.PrivateKey, id int) (string, error) {
+	return GenerateToken(username, private, id, "refresh", 7*24*time.Hour)
 }
 
-func Validate(token string) (*Claims, int) {
-	if token == "" {
-		return nil, common_err.INVALID_PARAMS
-	}
-
-	claims, err := ParseToken(token, false)
-
+func Validate(token string, publicKey *ecdsa.PublicKey) (bool, *Claims, error) {
+	claims, err := ParseToken(token, publicKey)
 	if err != nil {
-		return nil, common_err.ERROR_AUTH_TOKEN
-	} else if !claims.VerifyExpiresAt(time.Now(), true) || !claims.VerifyIssuer("casaos", true) {
-		return nil, common_err.ERROR_AUTH_TOKEN
+		return false, nil, err
 	}
 
-	return claims, common_err.SUCCESS
+	if claims != nil {
+		return true, claims, nil
+	}
+
+	return false, nil, errors.New("invalid token")
 }
