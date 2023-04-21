@@ -1,6 +1,9 @@
 package jwt
 
 import (
+	"crypto/rand"
+	"encoding/base64"
+	"io"
 	"net/http"
 	"strconv"
 
@@ -37,4 +40,13 @@ func JWT() gin.HandlerFunc {
 		c.Request.Header.Add("user_id", strconv.Itoa(claims.ID))
 		c.Next()
 	}
+}
+
+func GenerateSecret() (string, error) {
+	randomBytes := make([]byte, 6)
+	if _, err := io.ReadFull(rand.Reader, randomBytes); err != nil {
+		return "", err
+	}
+
+	return base64.StdEncoding.EncodeToString(randomBytes), nil
 }
