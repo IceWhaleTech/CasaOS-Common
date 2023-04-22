@@ -48,15 +48,17 @@ func TestJwtFlow(t *testing.T) {
 	consumedPublicKey, err := jwt.PublicKeyFromJwksJSON(jwksJSON)
 	require.NoError(t, err)
 
+	jwt.PublicKey = consumedPublicKey
+
 	// Validate the access token
-	valid, claims, err := jwt.Validate(accessToken, consumedPublicKey)
+	valid, claims, err := jwt.Validate(accessToken)
 	require.NoError(t, err)
 	assert.True(t, valid)
 	assert.Equal(t, username, claims.Username)
 	assert.Equal(t, id, claims.ID)
 
 	// Validate the refresh token
-	valid, claims, err = jwt.Validate(refreshToken, consumedPublicKey)
+	valid, claims, err = jwt.Validate(refreshToken)
 	require.NoError(t, err)
 	assert.True(t, valid)
 	assert.Equal(t, username, claims.Username)
@@ -67,6 +69,8 @@ func TestInvalidToken(t *testing.T) {
 	// Generate a key pair
 	privateKey, publicKey, err := jwt.GenerateKeyPair()
 	require.NoError(t, err)
+
+	jwt.PublicKey = publicKey
 
 	// Generate access token
 	username := "testuser"
@@ -79,7 +83,7 @@ func TestInvalidToken(t *testing.T) {
 	invalidToken := accessToken[:len(accessToken)-5] + "abcde"
 
 	// Validate the invalid token
-	valid, claims, err := jwt.Validate(invalidToken, publicKey)
+	valid, claims, err := jwt.Validate(invalidToken)
 	assert.Error(t, err)
 	assert.False(t, valid)
 	assert.Nil(t, claims)

@@ -49,7 +49,7 @@ func JWT() gin.HandlerFunc {
 			token = c.Query("token")
 		}
 
-		valid, claims, err := Validate(token, PublicKey)
+		valid, claims, err := Validate(token)
 		if err != nil || !valid {
 			message := "token is invalid"
 			c.JSON(http.StatusUnauthorized, model.Result{Success: common_err.ERROR_AUTH_TOKEN, Message: message})
