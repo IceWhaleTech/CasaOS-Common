@@ -29,6 +29,8 @@ type JWKS struct {
 
 var PublicKey *ecdsa.PublicKey
 
+const JWKSPath = "/.well-known/jwks.json"
+
 func ExceptLocalhost() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if c.ClientIP() == "::1" || c.ClientIP() == "127.0.0.1" {
@@ -115,4 +117,16 @@ func PublicKeyFromJwksJSON(jwksJSON []byte) (*ecdsa.PublicKey, error) {
 	}
 
 	return publicKey, nil
+}
+
+func JWKSHandler(jwksJSON []byte) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, err := w.Write(jwksJSON)
+		if err != nil {
+			http.Error(w, "Error writing JWKS JSON", http.StatusInternalServerError)
+			return
+		}
+	})
 }

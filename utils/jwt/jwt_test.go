@@ -31,17 +31,11 @@ func TestJwtFlow(t *testing.T) {
 	require.NoError(t, err)
 
 	// Serve the JWKS JSON
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		w.Write(jwksJSON)
-	})
-
-	server := httptest.NewServer(handler)
+	server := httptest.NewServer(jwt.JWKSHandler(jwksJSON))
 	defer server.Close()
 
 	// Consume the JWKS JSON
-	response, err := http.Get(server.URL + "/.well-known/jwks.json")
+	response, err := http.Get(server.URL + jwt.JWKSPath)
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, response.StatusCode)
 
