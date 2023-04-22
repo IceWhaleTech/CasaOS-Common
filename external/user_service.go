@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"path/filepath"
+	"time"
 
 	"github.com/IceWhaleTech/CasaOS-Common/utils/jwt"
 )
@@ -19,7 +20,16 @@ const (
 	UserServiceAddressFilename = "user-service.url"
 )
 
+var (
+	cachedPublicKey *ecdsa.PublicKey
+	lastUpdate      time.Time
+)
+
 func GetPublicKey(runtimePath string) (*ecdsa.PublicKey, error) {
+	if cachedPublicKey != nil && time.Since(lastUpdate) < 10*time.Second {
+		return cachedPublicKey, nil
+	}
+
 	address, err := getAddress(filepath.Join(runtimePath, UserServiceAddressFilename))
 	if err != nil {
 		return nil, err
@@ -67,9 +77,13 @@ func GetPublicKey(runtimePath string) (*ecdsa.PublicKey, error) {
 		return nil, fmt.Errorf("failed to decode JWK y value: %w", err)
 	}
 
-	return &ecdsa.PublicKey{
+	cachedPublicKey = &ecdsa.PublicKey{
 		Curve: elliptic.P256(),
 		X:     new(big.Int).SetBytes(xBytes),
 		Y:     new(big.Int).SetBytes(yBytes),
-	}, nil
+	}
+
+	lastUpdate = time.Now()
+
+	return cachedPublicKey, nil
 }
