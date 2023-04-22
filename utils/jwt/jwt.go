@@ -32,12 +32,12 @@ func GenerateToken(username string, privateKey *ecdsa.PrivateKey, id int, issuer
 	return signedToken, err
 }
 
-func ParseToken(signedToken string) (*Claims, error) {
+func ParseToken(signedToken string, publicKeyFunc func() *ecdsa.PublicKey) (*Claims, error) {
 	token, err := jwt.ParseWithClaims(signedToken, &Claims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodECDSA); !ok {
 			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
 		}
-		return PublicKey, nil
+		return publicKeyFunc(), nil
 	})
 	if err != nil {
 		return nil, err
@@ -59,8 +59,8 @@ func GetRefreshToken(username string, private *ecdsa.PrivateKey, id int) (string
 	return GenerateToken(username, private, id, "refresh", 7*24*time.Hour)
 }
 
-func Validate(token string) (bool, *Claims, error) {
-	claims, err := ParseToken(token)
+func Validate(token string, publicKeyFunc func() *ecdsa.PublicKey) (bool, *Claims, error) {
+	claims, err := ParseToken(token, publicKeyFunc)
 	if err != nil {
 		return false, nil, err
 	}
