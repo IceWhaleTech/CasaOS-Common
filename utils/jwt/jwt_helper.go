@@ -29,7 +29,7 @@ type JWKS struct {
 
 var PublicKey *ecdsa.PublicKey
 
-const JWKSPath = "/.well-known/jwks.json"
+const JWKSPath = ".well-known/jwks.json"
 
 func ExceptLocalhost() gin.HandlerFunc {
 	return func(c *gin.Context) {

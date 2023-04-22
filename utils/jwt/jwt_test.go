@@ -35,7 +35,7 @@ func TestJwtFlow(t *testing.T) {
 	defer server.Close()
 
 	// Consume the JWKS JSON
-	response, err := http.Get(server.URL + jwt.JWKSPath)
+	response, err := http.Get(server.URL + "/" + jwt.JWKSPath)
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, response.StatusCode)
 
