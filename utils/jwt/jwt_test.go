@@ -50,14 +50,14 @@ func TestJwtFlow(t *testing.T) {
 	require.NoError(t, err)
 
 	// Validate the access token
-	valid, claims, err := jwt.Validate(accessToken, func() *ecdsa.PublicKey { return consumedPublicKey })
+	valid, claims, err := jwt.Validate(accessToken, func() (*ecdsa.PublicKey, error) { return consumedPublicKey, nil })
 	require.NoError(t, err)
 	assert.True(t, valid)
 	assert.Equal(t, username, claims.Username)
 	assert.Equal(t, id, claims.ID)
 
 	// Validate the refresh token
-	valid, claims, err = jwt.Validate(refreshToken, func() *ecdsa.PublicKey { return consumedPublicKey })
+	valid, claims, err = jwt.Validate(refreshToken, func() (*ecdsa.PublicKey, error) { return consumedPublicKey, nil })
 	require.NoError(t, err)
 	assert.True(t, valid)
 	assert.Equal(t, username, claims.Username)
@@ -80,7 +80,7 @@ func TestInvalidToken(t *testing.T) {
 	invalidToken := accessToken[:len(accessToken)-5] + "abcde"
 
 	// Validate the invalid token
-	valid, claims, err := jwt.Validate(invalidToken, func() *ecdsa.PublicKey { return publicKey })
+	valid, claims, err := jwt.Validate(invalidToken, func() (*ecdsa.PublicKey, error) { return publicKey, nil })
 	assert.Error(t, err)
 	assert.False(t, valid)
 	assert.Nil(t, claims)

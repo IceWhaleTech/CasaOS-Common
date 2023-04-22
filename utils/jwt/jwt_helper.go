@@ -29,7 +29,7 @@ type JWKS struct {
 
 const JWKSPath = ".well-known/jwks.json"
 
-func ExceptLocalhost(publicKeyFunc func() *ecdsa.PublicKey) gin.HandlerFunc {
+func ExceptLocalhost(publicKeyFunc func() (*ecdsa.PublicKey, error)) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if c.ClientIP() == "::1" || c.ClientIP() == "127.0.0.1" {
 			c.Next()
@@ -40,7 +40,7 @@ func ExceptLocalhost(publicKeyFunc func() *ecdsa.PublicKey) gin.HandlerFunc {
 	}
 }
 
-func JWT(publicKeyFunc func() *ecdsa.PublicKey) gin.HandlerFunc {
+func JWT(publicKeyFunc func() (*ecdsa.PublicKey, error)) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		token := c.GetHeader("Authorization")
 		if len(token) == 0 {
