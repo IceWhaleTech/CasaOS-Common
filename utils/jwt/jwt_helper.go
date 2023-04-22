@@ -27,29 +27,27 @@ type JWKS struct {
 	Keys []JWK `json:"keys"`
 }
 
-var PublicKey *ecdsa.PublicKey
-
 const JWKSPath = ".well-known/jwks.json"
 
-func ExceptLocalhost() gin.HandlerFunc {
+func ExceptLocalhost(publicKeyFunc func() (*ecdsa.PublicKey, error)) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if c.ClientIP() == "::1" || c.ClientIP() == "127.0.0.1" {
 			c.Next()
 			return
 		}
 
-		JWT()(c)
+		JWT(publicKeyFunc)(c)
 	}
 }
 
-func JWT() gin.HandlerFunc {
+func JWT(publicKeyFunc func() (*ecdsa.PublicKey, error)) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		token := c.GetHeader("Authorization")
 		if len(token) == 0 {
 			token = c.Query("token")
 		}
 
-		valid, claims, err := Validate(token)
+		valid, claims, err := Validate(token, publicKeyFunc)
 		if err != nil || !valid {
 			message := "token is invalid"
 			c.JSON(http.StatusUnauthorized, model.Result{Success: common_err.ERROR_AUTH_TOKEN, Message: message})

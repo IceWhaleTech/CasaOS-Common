@@ -1,6 +1,7 @@
 package jwt_test
 
 import (
+	"crypto/ecdsa"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -48,17 +49,15 @@ func TestJwtFlow(t *testing.T) {
 	consumedPublicKey, err := jwt.PublicKeyFromJwksJSON(jwksJSON)
 	require.NoError(t, err)
 
-	jwt.PublicKey = consumedPublicKey
-
 	// Validate the access token
-	valid, claims, err := jwt.Validate(accessToken)
+	valid, claims, err := jwt.Validate(accessToken, func() (*ecdsa.PublicKey, error) { return consumedPublicKey, nil })
 	require.NoError(t, err)
 	assert.True(t, valid)
 	assert.Equal(t, username, claims.Username)
 	assert.Equal(t, id, claims.ID)
 
 	// Validate the refresh token
-	valid, claims, err = jwt.Validate(refreshToken)
+	valid, claims, err = jwt.Validate(refreshToken, func() (*ecdsa.PublicKey, error) { return consumedPublicKey, nil })
 	require.NoError(t, err)
 	assert.True(t, valid)
 	assert.Equal(t, username, claims.Username)
@@ -69,8 +68,6 @@ func TestInvalidToken(t *testing.T) {
 	// Generate a key pair
 	privateKey, publicKey, err := jwt.GenerateKeyPair()
 	require.NoError(t, err)
-
-	jwt.PublicKey = publicKey
 
 	// Generate access token
 	username := "testuser"
@@ -83,7 +80,7 @@ func TestInvalidToken(t *testing.T) {
 	invalidToken := accessToken[:len(accessToken)-5] + "abcde"
 
 	// Validate the invalid token
-	valid, claims, err := jwt.Validate(invalidToken)
+	valid, claims, err := jwt.Validate(invalidToken, func() (*ecdsa.PublicKey, error) { return publicKey, nil })
 	assert.Error(t, err)
 	assert.False(t, valid)
 	assert.Nil(t, claims)
