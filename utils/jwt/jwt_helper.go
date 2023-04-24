@@ -51,6 +51,7 @@ func JWT(publicKeyFunc func() (*ecdsa.PublicKey, error)) gin.HandlerFunc {
 		if err != nil || !valid {
 			message := "token is invalid"
 			c.JSON(http.StatusUnauthorized, model.Result{Success: common_err.ERROR_AUTH_TOKEN, Message: message})
+			c.Abort()
 			return
 		}
 
