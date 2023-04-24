@@ -7,7 +7,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/IceWhaleTech/CasaOS-Common/model"
+	"github.com/IceWhaleTech/CasaOS-Common/utils/common_err"
 	"github.com/IceWhaleTech/CasaOS-Common/utils/jwt"
+	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -84,4 +87,87 @@ func TestInvalidToken(t *testing.T) {
 	assert.Error(t, err)
 	assert.False(t, valid)
 	assert.Nil(t, claims)
+}
+
+func TestJWTMiddlewareWithValidToken(t *testing.T) {
+	// Generate a key pair
+	privateKey, publicKey, err := jwt.GenerateKeyPair()
+	require.NoError(t, err)
+
+	// Generate access token
+	username := "testuser"
+	id := 1
+
+	accessToken, err := jwt.GetAccessToken(username, privateKey, id)
+	require.NoError(t, err)
+
+	// Mock publicKeyFunc to return a public key.
+	mockPublicKeyFunc := func() (*ecdsa.PublicKey, error) {
+		// You can use a pre-generated public key here or generate a new key pair for testing.
+		return publicKey, nil
+	}
+
+	// Create a Gin test context and a response recorder.
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	router.Use(jwt.JWT(mockPublicKeyFunc))
+	router.GET("/test", func(c *gin.Context) {
+		c.JSON(http.StatusOK, model.Result{
+			Success: common_err.SUCCESS,
+			Message: "success",
+		})
+	})
+
+	req, _ := http.NewRequest(http.MethodGet, "/test", nil)
+	req.Header.Set("Authorization", accessToken)
+	respRecorder := httptest.NewRecorder()
+
+	router.ServeHTTP(respRecorder, req)
+
+	// Assert the response status code and content.
+	assert.Equal(t, http.StatusOK, respRecorder.Code)
+
+	result := model.Result{}
+	err = json.Unmarshal(respRecorder.Body.Bytes(), &result)
+
+	assert.Equal(t, result.Success, common_err.SUCCESS)
+	require.NoError(t, err)
+}
+
+func TestJWTMiddlewareWithInvalidToken(t *testing.T) {
+	// Generate a key pair
+	_, publicKey, err := jwt.GenerateKeyPair()
+	require.NoError(t, err)
+
+	// Mock publicKeyFunc to return a public key.
+	mockPublicKeyFunc := func() (*ecdsa.PublicKey, error) {
+		// You can use a pre-generated public key here or generate a new key pair for testing.
+		return publicKey, nil
+	}
+
+	// Create a Gin test context and a response recorder.
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	router.Use(jwt.JWT(mockPublicKeyFunc))
+	router.Use(func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"message": "success"})
+	})
+	router.GET("/test", func(c *gin.Context) {
+		assert.Fail(t, "this handler should not be called")
+	})
+
+	req, _ := http.NewRequest(http.MethodGet, "/test", nil)
+	req.Header.Set("Authorization", "invalid_token")
+	respRecorder := httptest.NewRecorder()
+
+	router.ServeHTTP(respRecorder, req)
+
+	// Assert the response status code and content.
+	assert.Equal(t, http.StatusUnauthorized, respRecorder.Code)
+
+	result := model.Result{}
+	err = json.Unmarshal(respRecorder.Body.Bytes(), &result)
+
+	assert.Equal(t, result.Success, common_err.ERROR_AUTH_TOKEN)
+	require.NoError(t, err)
 }
