@@ -84,7 +84,6 @@ var (
 		"stoic",
 		"sweet",
 		"tender",
-		"thirsty",
 		"trusting",
 		"unruffled",
 		"upbeat",
