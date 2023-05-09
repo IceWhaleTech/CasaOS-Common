@@ -26,7 +26,7 @@ const (
 type ManagementService interface {
 	CreateRoute(route *model.Route) error
 	ChangePort(request *model.ChangePortRequest) error
-	GetPort(request *model.ChangePortRequest) (error, string)
+	GetPort() (error, string)
 }
 
 type managementService struct {
@@ -72,7 +72,7 @@ func (m *managementService) ChangePort(request *model.ChangePortRequest) error {
 	return nil
 }
 
-func (m *managementService) GetPort(request *model.ChangePortRequest) (error, string) {
+func (m *managementService) GetPort() (error, string) {
 	url := strings.TrimSuffix(m.address, "/") + "/" + strings.TrimPrefix(APIGatewayPort, "/")
 
 	response, err := http2.Get(url, 30*time.Second)
@@ -87,7 +87,6 @@ func (m *managementService) GetPort(request *model.ChangePortRequest) (error, st
 	if err != nil {
 		return err, ""
 	}
-	request.Port = string(str)
 	return nil, string(str)
 }
 
