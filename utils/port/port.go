@@ -81,11 +81,13 @@ func IsPortAvailable(port int, t string) bool {
 
 func ListPortsInUse() ([]int, []int, error) {
 	usedPorts := map[string]map[int]struct{}{
-		"tcp": {},
-		"udp": {},
+		"tcp":  {},
+		"udp":  {},
+		"tcp6": {},
+		"udp6": {},
 	}
 
-	for _, protocol := range []string{"tcp", "udp"} {
+	for _, protocol := range lo.Keys(usedPorts) {
 		filename := fmt.Sprintf("/proc/net/%s", protocol)
 
 		file, err := os.Open(filename)
@@ -122,5 +124,11 @@ func ListPortsInUse() ([]int, []int, error) {
 		}
 	}
 
-	return lo.Keys(usedPorts["tcp"]), lo.Keys(usedPorts["udp"]), nil
+	return lo.Union(
+			lo.Keys(usedPorts["tcp"]), lo.Keys(usedPorts["tcp6"]),
+		),
+		lo.Union(
+			lo.Keys(usedPorts["udp"]), lo.Keys(usedPorts["udp6"]),
+		),
+		nil
 }
