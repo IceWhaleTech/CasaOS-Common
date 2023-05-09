@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -68,6 +69,25 @@ func (m *managementService) ChangePort(request *model.ChangePortRequest) error {
 	}
 
 	return nil
+}
+
+func (m *managementService) GetPort(request *model.ChangePortRequest) (error, string) {
+	url := strings.TrimSuffix(m.address, "/") + "/" + strings.TrimPrefix(APIGatewayPort, "/")
+
+	response, err := http2.Get(url, 30*time.Second)
+	if err != nil {
+		return err, ""
+	}
+
+	if response.StatusCode != http.StatusOK {
+		return errors.New("failed to change port (status code: " + fmt.Sprint(response.StatusCode) + ")"), ""
+	}
+	str, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return err, ""
+	}
+	request.Port = string(str)
+	return nil, string(str)
 }
 
 func NewManagementService(RuntimePath string) (ManagementService, error) {
