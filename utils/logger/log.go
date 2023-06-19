@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"runtime"
 
+	"github.com/samber/lo"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
@@ -27,25 +28,30 @@ func getFileLogWriter(logPath string, logFileName string, logFileExt string) (wr
 	return zapcore.AddSync(lumberJackLogger)
 }
 
+func LogInitWithWriterSyncers(syncers ...zapcore.WriteSyncer) {
+	encoder := getEncoder()
+	loggers = zap.New(
+		zapcore.NewTee(
+			lo.Map(
+				syncers,
+				func(syncer zapcore.WriteSyncer, index int) zapcore.Core {
+					return zapcore.NewCore(encoder, syncer, zapcore.InfoLevel)
+				})...,
+		))
+}
+
 // for unit tests
 func LogInitConsoleOnly() {
-	encoder := getEncoder()
-
-	core := zapcore.NewTee(
-		zapcore.NewCore(encoder, zapcore.AddSync(os.Stdout), zapcore.InfoLevel),
+	LogInitWithWriterSyncers(
+		zapcore.AddSync(os.Stdout),
 	)
-	loggers = zap.New(core)
 }
 
 func LogInit(logPath string, logFileName string, logFileExt string) {
-	encoder := getEncoder()
-
-	fileWriteSyncer := getFileLogWriter(logPath, logFileName, logFileExt)
-	core := zapcore.NewTee(
-		zapcore.NewCore(encoder, zapcore.AddSync(os.Stdout), zapcore.InfoLevel),
-		zapcore.NewCore(encoder, fileWriteSyncer, zapcore.InfoLevel),
+	LogInitWithWriterSyncers(
+		zapcore.AddSync(os.Stdout),
+		getFileLogWriter(logPath, logFileName, logFileExt),
 	)
-	loggers = zap.New(core)
 }
 
 func Info(message string, fields ...zap.Field) {
