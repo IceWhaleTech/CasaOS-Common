@@ -8,4 +8,6 @@ type DeviceInfo struct {
 	Initialized bool     `json:"initialized"`
 	OS_Version  string   `json:"os_version"`
 	Hash        string   `json:"hash"`
+	RequestIp   string   `json:"request_ip,omitempty"`
+	TB_Ipv4     []string `json:"tb_ipv4"`
 }
