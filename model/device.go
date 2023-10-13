@@ -11,5 +11,4 @@ type DeviceInfo struct {
 	RequestIp   string              `json:"request_ip,omitempty"`
 	TB_Ipv4     []string            `json:"tb_ipv4"`
 	Ip4         []map[string]string `json:"ip4"`
-	TB_Ip4      []map[string]string `json:"tb_ip4"`
 }
