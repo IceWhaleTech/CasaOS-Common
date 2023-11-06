@@ -92,7 +92,8 @@ func ListPortsInUse() ([]int, []int, error) {
 
 		file, err := os.Open(filename)
 		if err != nil {
-			return nil, nil, errors.New("Failed to open " + filename)
+			fmt.Println("Warning: ", err.Error())
+			continue
 		}
 		defer file.Close()
 
