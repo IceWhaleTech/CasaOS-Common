@@ -418,11 +418,14 @@ func AddFile(ar archiver.Writer, path, commonPath string) error {
 	defer file.Close()
 
 	if path != commonPath {
-		filename := info.Name()
+		//filename := info.Name()
+		fpath := strings.Replace(path, commonPath, "", 1)
+		fpath = filepath.Join(filepath.Base(commonPath), fpath)
+		//filename := info.Name()
 		err = ar.Write(archiver.File{
 			FileInfo: archiver.FileInfo{
 				FileInfo:   info,
-				CustomName: filename,
+				CustomName: fpath,
 			},
 			ReadCloser: file,
 		})
