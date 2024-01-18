@@ -9,7 +9,7 @@ import (
 
 func TestGPUInfo(t *testing.T) {
 	t.Skip()
-	GPUsInfo, err := external.GPUInfoList()
+	result, err := external.GPUInfoList()
 	assert.NilError(t, err)
-	assert.Equal(t, len(GPUsInfo), 1)
+	assert.Equal(t, len(result), 1)
 }
