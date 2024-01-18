@@ -22,7 +22,7 @@ type GPUInfo struct {
 	TemperatureGPU int
 }
 
-func GPUsInfo() ([]GPUInfo, error) {
+func GPUInfoList() ([]GPUInfo, error) {
 	// execute shell
 	// parse result
 	GPUInfos := []GPUInfo{}

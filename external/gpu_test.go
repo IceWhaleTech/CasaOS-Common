@@ -7,9 +7,9 @@ import (
 	"gotest.tools/v3/assert"
 )
 
-func TestGPUInfos(t *testing.T) {
+func TestGPUInfo(t *testing.T) {
 	t.Skip()
-	GPUsInfo, err := external.GPUsInfo()
+	result, err := external.GPUInfoList()
 	assert.NilError(t, err)
-	assert.Equal(t, len(GPUsInfo), 1)
+	assert.Equal(t, len(result), 1)
 }
