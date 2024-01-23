@@ -1,7 +1,6 @@
 package external
 
 import (
-	"fmt"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -32,7 +31,6 @@ func GPUInfoList() ([]GPUInfo, error) {
 		return nil, err
 	}
 	lines := strings.Split(string(output), "\n")
-	fmt.Println(lines)
 	for _, line := range lines {
 		value := strings.Split(line, ", ")
 		if len(value) == 12 {
