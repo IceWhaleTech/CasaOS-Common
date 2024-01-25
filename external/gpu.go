@@ -69,8 +69,8 @@ func NvidiaGPUInfoList() ([]NvidiaGPUInfo, error) {
 	return GPUInfos, nil
 }
 
-func GPUInfoList() ([]interface{}, error) {
-	GPUInfos := []interface{}{}
+func GPUInfoList() ([]GPUInfo, error) {
+	GPUInfos := []GPUInfo{}
 	nvidiaGPUInfoList, err := NvidiaGPUInfoList()
 	if err != nil {
 		return nil, err
@@ -84,7 +84,7 @@ func GPUInfoList() ([]interface{}, error) {
 				Name:           gpuInfo.Name,
 				TemperatureGPU: gpuInfo.TemperatureGPU,
 			}
-		}),
+		})...,
 	)
 	return GPUInfos, nil
 }
