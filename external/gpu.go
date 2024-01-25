@@ -1,13 +1,25 @@
 package external
 
 import (
-	"fmt"
 	"os/exec"
 	"strconv"
 	"strings"
+
+	"github.com/samber/lo"
 )
 
 type GPUInfo struct {
+	Index          int
+	UUID           string
+	MemoryTotal    int
+	MemoryUsed     int
+	MemoryFree     int
+	Name           string
+	GPUSerial      string
+	TemperatureGPU int
+}
+
+type NvidiaGPUInfo struct {
 	Index          int
 	UUID           string
 	UtilizationGPU int
@@ -22,17 +34,14 @@ type GPUInfo struct {
 	TemperatureGPU int
 }
 
-func GPUInfoList() ([]GPUInfo, error) {
-	// execute shell
-	// parse result
-	GPUInfos := []GPUInfo{}
+func NvidiaGPUInfoList() ([]NvidiaGPUInfo, error) {
+	GPUInfos := []NvidiaGPUInfo{}
 
 	output, err := exec.Command("nvidia-smi", "--query-gpu=index,uuid,utilization.gpu,memory.total,memory.used,memory.free,driver_version,name,gpu_serial,display_active,display_mode,temperature.gpu", "--format=csv,noheader,nounits").Output()
 	if err != nil {
 		return nil, err
 	}
 	lines := strings.Split(string(output), "\n")
-	fmt.Println(lines)
 	for _, line := range lines {
 		value := strings.Split(line, ", ")
 		if len(value) == 12 {
@@ -42,7 +51,7 @@ func GPUInfoList() ([]GPUInfo, error) {
 			memoryUsed, _ := strconv.Atoi(value[4])
 			memoryFree, _ := strconv.Atoi(value[5])
 			temperatureGPU, _ := strconv.Atoi(value[11])
-			GPUInfos = append(GPUInfos, GPUInfo{
+			GPUInfos = append(GPUInfos, NvidiaGPUInfo{
 				Index:          index,
 				UUID:           value[1],
 				UtilizationGPU: utilizationGPU,
@@ -60,6 +69,28 @@ func GPUInfoList() ([]GPUInfo, error) {
 			continue
 		}
 	}
+	return GPUInfos, nil
+}
 
+func GPUInfoList() ([]interface{}, error) {
+	GPUInfos := []interface{}{}
+	nvidiaGPUInfoList, err := NvidiaGPUInfoList()
+	if err != nil {
+		return nil, err
+	}
+	GPUInfos = append(GPUInfos, lo.Map(
+		nvidiaGPUInfoList, func(gpuInfo NvidiaGPUInfo, index int) GPUInfo {
+			return GPUInfo{
+				Index:          gpuInfo.Index,
+				UUID:           gpuInfo.UUID,
+				MemoryTotal:    gpuInfo.MemoryTotal,
+				MemoryUsed:     gpuInfo.MemoryUsed,
+				MemoryFree:     gpuInfo.MemoryFree,
+				Name:           gpuInfo.Name,
+				GPUSerial:      gpuInfo.GPUSerial,
+				TemperatureGPU: gpuInfo.TemperatureGPU,
+			}
+		}),
+	)
 	return GPUInfos, nil
 }
