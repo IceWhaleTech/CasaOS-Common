@@ -9,13 +9,10 @@ import (
 )
 
 type GPUInfo struct {
-	Index          int
-	UUID           string
 	MemoryTotal    int
 	MemoryUsed     int
 	MemoryFree     int
 	Name           string
-	GPUSerial      string
 	TemperatureGPU int
 }
 
@@ -81,13 +78,10 @@ func GPUInfoList() ([]interface{}, error) {
 	GPUInfos = append(GPUInfos, lo.Map(
 		nvidiaGPUInfoList, func(gpuInfo NvidiaGPUInfo, index int) GPUInfo {
 			return GPUInfo{
-				Index:          gpuInfo.Index,
-				UUID:           gpuInfo.UUID,
 				MemoryTotal:    gpuInfo.MemoryTotal,
 				MemoryUsed:     gpuInfo.MemoryUsed,
 				MemoryFree:     gpuInfo.MemoryFree,
 				Name:           gpuInfo.Name,
-				GPUSerial:      gpuInfo.GPUSerial,
 				TemperatureGPU: gpuInfo.TemperatureGPU,
 			}
 		}),
