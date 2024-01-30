@@ -1,6 +1,7 @@
 package external
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -10,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/IceWhaleTech/CasaOS-Common/model"
 	http2 "github.com/IceWhaleTech/CasaOS-Common/utils/http"
 )
 
@@ -20,51 +22,48 @@ const (
 )
 
 type AppManageService interface {
-	GetAppInfo(storeId string) (string, error)
-	PutAppStatus(storeId string, status string) (string, error)
+	GetAppInfo(storeId string) (model.ComposeAppWithStoreInfo, error)
+	PutAppStatus(storeId string, status string) (bool, error)
 }
 
 type appManageService struct {
 	address string
 }
 
-func (m *appManageService) GetAppInfo(storeId string) (string, error) {
+func (m *appManageService) GetAppInfo(storeId string) (model.ComposeAppWithStoreInfo, error) {
 	url := strings.TrimSuffix(m.address, "/") + "/" + strings.TrimPrefix(APIComposeInfo, "/"+storeId)
-
+	model := model.ComposeAppWithStoreInfo{}
 	response, err := http2.Get(url, 30*time.Second)
 	if err != nil {
-		return "", err
+		return model, err
 	}
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusCreated {
-		return "", errors.New("failed to create route (status code: " + fmt.Sprint(response.StatusCode) + ")")
+		return model, errors.New("failed to create route (status code: " + fmt.Sprint(response.StatusCode) + ")")
 	}
 	str, err := io.ReadAll(response.Body)
 	if err != nil {
-		return "", err
+		return model, err
 	}
 	defer response.Body.Close()
-	return string(str), nil
+
+	err = json.Unmarshal(str, &model)
+	return model, err
 }
 
-func (m *appManageService) PutAppStatus(storeId string, status string) (string, error) {
+func (m *appManageService) PutAppStatus(storeId string, status string) (bool, error) {
 	url := strings.TrimSuffix(m.address, "/") + "/" + strings.TrimPrefix(APIComposeStatus, "/"+storeId)
 
 	body := []byte(status)
 	response, err := http2.Put(url, body, 30*time.Second)
 	if err != nil {
-		return "", err
+		return false, err
 	}
 	if response.StatusCode != http.StatusOK {
-		return "", errors.New("failed to change status (status code: " + fmt.Sprint(response.StatusCode) + ")")
+		return false, errors.New("failed to change status (status code: " + fmt.Sprint(response.StatusCode) + ")")
 	}
-	str, err := io.ReadAll(response.Body)
-	if err != nil {
-		return "", err
-	}
-	defer response.Body.Close()
-	return string(str), nil
+	return true, nil
 }
 
 func NewAppManageService(RuntimePath string) (AppManageService, error) {
