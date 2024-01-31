@@ -29,8 +29,8 @@ type NvidiaGPUInfo struct {
 	DisplayActive     bool
 	DisplayMode       bool
 	TemperatureGPU    int
-	PowerDraw         int     `json:"power_draw"`
-	PowerLimit        int     `json:"power_limit"`
+	PowerDraw         float32 `json:"power_draw"`
+	PowerLimit        float32 `json:"power_limit"`
 	MemoryUtilization float32 `json:"memory_utilization"`
 	Utilization       float32 `json:"utilization"`
 }
@@ -45,17 +45,17 @@ func NvidiaGPUInfoList() ([]NvidiaGPUInfo, error) {
 	lines := strings.Split(string(output), "\n")
 	for _, line := range lines {
 		value := strings.Split(line, ", ")
-		if len(value) == 12 {
+		if len(value) == 16 {
 			index, _ := strconv.Atoi(value[0])
 			utilizationGPU, _ := strconv.Atoi(value[2])
 			memoryTotal, _ := strconv.Atoi(value[3])
 			memoryUsed, _ := strconv.Atoi(value[4])
 			memoryFree, _ := strconv.Atoi(value[5])
 			temperatureGPU, _ := strconv.Atoi(value[11])
-			utilization, _ := strconv.ParseFloat(value[13], 32)
-			memoryUtilization, _ := strconv.ParseFloat(value[14], 32)
-			powerDraw, _ := strconv.Atoi(value[15])
-			powerLimit, _ := strconv.Atoi(value[16])
+			utilization, _ := strconv.ParseFloat(value[12], 32)
+			memoryUtilization, _ := strconv.ParseFloat(value[13], 32)
+			powerDraw, _ := strconv.ParseFloat(value[14], 32)
+			powerLimit, _ := strconv.ParseFloat(value[15], 32)
 
 			GPUInfos = append(GPUInfos, NvidiaGPUInfo{
 				Index:             index,
@@ -70,8 +70,8 @@ func NvidiaGPUInfoList() ([]NvidiaGPUInfo, error) {
 				DisplayActive:     value[9] == "Enable",
 				DisplayMode:       value[10] == "Enabled",
 				TemperatureGPU:    temperatureGPU,
-				PowerDraw:         powerDraw,
-				PowerLimit:        powerLimit,
+				PowerDraw:         float32(powerDraw),
+				PowerLimit:        float32(powerLimit),
 				MemoryUtilization: float32(memoryUtilization),
 				Utilization:       float32(utilization),
 			})
