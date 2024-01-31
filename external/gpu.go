@@ -17,24 +17,28 @@ type GPUInfo struct {
 }
 
 type NvidiaGPUInfo struct {
-	Index          int
-	UUID           string
-	UtilizationGPU int
-	MemoryTotal    int
-	MemoryUsed     int
-	MemoryFree     int
-	DriverVersion  string
-	Name           string
-	GPUSerial      string
-	DisplayActive  bool
-	DisplayMode    bool
-	TemperatureGPU int
+	Index             int
+	UUID              string
+	UtilizationGPU    int
+	MemoryTotal       int
+	MemoryUsed        int
+	MemoryFree        int
+	DriverVersion     string
+	Name              string
+	GPUSerial         string
+	DisplayActive     bool
+	DisplayMode       bool
+	TemperatureGPU    int
+	PowerDraw         int     `json:"power_draw"`
+	PowerLimit        int     `json:"power_limit"`
+	MemoryUtilization float32 `json:"memory_utilization"`
+	Utilization       float32 `json:"utilization"`
 }
 
 func NvidiaGPUInfoList() ([]NvidiaGPUInfo, error) {
 	GPUInfos := []NvidiaGPUInfo{}
 
-	output, err := exec.Command("nvidia-smi", "--query-gpu=index,uuid,utilization.gpu,memory.total,memory.used,memory.free,driver_version,name,gpu_serial,display_active,display_mode,temperature.gpu", "--format=csv,noheader,nounits").Output()
+	output, err := exec.Command("nvidia-smi", "--query-gpu=index,uuid,utilization.gpu,memory.total,memory.used,memory.free,driver_version,name,gpu_serial,display_active,display_mode,temperature.gpu,utilization.gpu,utilization.memory,power.draw,power.limit", "--format=csv,noheader,nounits").Output()
 	if err != nil {
 		return nil, err
 	}
@@ -48,19 +52,28 @@ func NvidiaGPUInfoList() ([]NvidiaGPUInfo, error) {
 			memoryUsed, _ := strconv.Atoi(value[4])
 			memoryFree, _ := strconv.Atoi(value[5])
 			temperatureGPU, _ := strconv.Atoi(value[11])
+			utilization, _ := strconv.ParseFloat(value[13], 32)
+			memoryUtilization, _ := strconv.ParseFloat(value[14], 32)
+			powerDraw, _ := strconv.Atoi(value[15])
+			powerLimit, _ := strconv.Atoi(value[16])
+
 			GPUInfos = append(GPUInfos, NvidiaGPUInfo{
-				Index:          index,
-				UUID:           value[1],
-				UtilizationGPU: utilizationGPU,
-				MemoryTotal:    memoryTotal,
-				MemoryUsed:     memoryUsed,
-				MemoryFree:     memoryFree,
-				DriverVersion:  value[6],
-				Name:           value[7],
-				GPUSerial:      value[8],
-				DisplayActive:  value[9] == "Enable",
-				DisplayMode:    value[10] == "Enabled",
-				TemperatureGPU: temperatureGPU,
+				Index:             index,
+				UUID:              value[1],
+				UtilizationGPU:    utilizationGPU,
+				MemoryTotal:       memoryTotal,
+				MemoryUsed:        memoryUsed,
+				MemoryFree:        memoryFree,
+				DriverVersion:     value[6],
+				Name:              value[7],
+				GPUSerial:         value[8],
+				DisplayActive:     value[9] == "Enable",
+				DisplayMode:       value[10] == "Enabled",
+				TemperatureGPU:    temperatureGPU,
+				PowerDraw:         powerDraw,
+				PowerLimit:        powerLimit,
+				MemoryUtilization: float32(memoryUtilization),
+				Utilization:       float32(utilization),
 			})
 		} else {
 			continue
