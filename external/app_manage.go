@@ -13,12 +13,13 @@ import (
 
 	"github.com/IceWhaleTech/CasaOS-Common/model"
 	http2 "github.com/IceWhaleTech/CasaOS-Common/utils/http"
+	"github.com/tidwall/gjson"
 )
 
 const (
-	ManageURLFilename = "app-management.url"
-	APIComposeInfo    = "/v2/app_management/compose"
-	APIComposeStatus  = "/v2/app_management/compose"
+	AppManageURLFilename = "app-management.url"
+	APIComposeInfo       = "/v2/app_management/compose"
+	APIComposeStatus     = "/v2/app_management/compose"
 )
 
 type AppManageService interface {
@@ -39,7 +40,7 @@ func (m *appManageService) GetAppInfo(storeId string) (model.ComposeAppWithStore
 	}
 	defer response.Body.Close()
 
-	if response.StatusCode != http.StatusCreated {
+	if response.StatusCode != http.StatusOK {
 		return model, errors.New("failed to create route (status code: " + fmt.Sprint(response.StatusCode) + ")")
 	}
 	str, err := io.ReadAll(response.Body)
@@ -47,8 +48,8 @@ func (m *appManageService) GetAppInfo(storeId string) (model.ComposeAppWithStore
 		return model, err
 	}
 	defer response.Body.Close()
-
-	err = json.Unmarshal(str, &model)
+	gstr := gjson.Get(string(str), "data")
+	err = json.Unmarshal([]byte(gstr.Raw), &model)
 	return model, err
 }
 
@@ -67,7 +68,7 @@ func (m *appManageService) PutAppStatus(storeId string, status string) (bool, er
 }
 
 func NewAppManageService(RuntimePath string) (AppManageService, error) {
-	managementAddressFile := filepath.Join(RuntimePath, ManagementURLFilename)
+	managementAddressFile := filepath.Join(RuntimePath, AppManageURLFilename)
 
 	retry := 10
 
