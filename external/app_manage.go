@@ -31,7 +31,7 @@ type appManageService struct {
 }
 
 func (m *appManageService) GetAppInfo(storeId string) (model.ComposeAppWithStoreInfo, error) {
-	url := strings.TrimSuffix(m.address, "/") + "/" + strings.TrimPrefix(APIComposeInfo, "/"+storeId)
+	url := strings.TrimSuffix(m.address, "/") + APIComposeInfo + "/" + storeId
 	model := model.ComposeAppWithStoreInfo{}
 	response, err := http2.Get(url, 30*time.Second)
 	if err != nil {
