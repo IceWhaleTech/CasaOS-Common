@@ -78,7 +78,19 @@ func Put(url string, body []byte, timeout time.Duration) (*http.Response, error)
 		if err != nil {
 			return nil, err
 		}
+		request.Header.Set("accept", "application/json")
+		request.Header.Set("Content-Type", "application/json")
 
+		return request, nil
+	}, timeout)
+}
+func PutByReader(url string, body []byte, timeout time.Duration) (*http.Response, error) {
+	return Do(func(ctx context.Context) (*http.Request, error) {
+		request, err := http.NewRequestWithContext(ctx, http.MethodPut, url, bytes.NewBuffer(body))
+		if err != nil {
+			return nil, err
+		}
+		request.Header.Set("accept", "application/json")
 		request.Header.Set("Content-Type", "application/json")
 
 		return request, nil

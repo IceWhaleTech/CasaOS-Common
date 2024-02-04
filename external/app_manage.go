@@ -54,9 +54,9 @@ func (m *appManageService) GetAppInfo(storeId string) (model.ComposeAppWithStore
 }
 
 func (m *appManageService) PutAppStatus(storeId string, status string) (bool, error) {
-	url := strings.TrimSuffix(m.address, "/") + "/" + strings.TrimPrefix(APIComposeStatus, "/"+storeId)
+	url := strings.TrimSuffix(m.address, "/") + APIComposeStatus + "/" + storeId + "/status"
 
-	body := []byte(status)
+	body := []byte(`"` + status + `"`)
 	response, err := http2.Put(url, body, 30*time.Second)
 	if err != nil {
 		return false, err
