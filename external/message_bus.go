@@ -69,7 +69,8 @@ func GetMessageBusAddress(runtimePath string) (string, error) {
 
 	return strings.TrimRight(address, "/") + APIMessageBus, nil
 }
-func PublishEventInSocket(ctx context.Context, eventType EventType, properties map[string]string) (*http.Response, error) {
+
+func PublishEventInSocket(ctx context.Context, SourceID string, Name string, properties map[string]string) (*http.Response, error) {
 	socketPath := "/tmp/message-bus.sock"
 	httpClient := &http.Client{
 		Transport: &http.Transport{
@@ -85,7 +86,7 @@ func PublishEventInSocket(ctx context.Context, eventType EventType, properties m
 	}
 
 	req, err := http.NewRequest("POST",
-		fmt.Sprintf("http://unix/v2/message_bus/event/%s/%s", eventType.SourceID, eventType.Name),
+		fmt.Sprintf("http://unix/v2/message_bus/event/%s/%s", SourceID, Name),
 		bytes.NewBuffer(body),
 	)
 	if err != nil {
