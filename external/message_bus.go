@@ -1,7 +1,12 @@
 package external
 
 import (
+	"bytes"
+	"context"
+	"encoding/json"
 	"fmt"
+	"net"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -63,4 +68,35 @@ func GetMessageBusAddress(runtimePath string) (string, error) {
 	}
 
 	return strings.TrimRight(address, "/") + APIMessageBus, nil
+}
+func PublishEventInSocket(ctx context.Context, eventType EventType, properties map[string]string) (*http.Response, error) {
+	socketPath := "/tmp/message-bus.sock"
+	httpClient := &http.Client{
+		Transport: &http.Transport{
+			DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
+				return net.Dial("unix", socketPath)
+			},
+		},
+	}
+
+	body, err := json.Marshal(properties)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST",
+		fmt.Sprintf("http://unix/v2/message_bus/event/%s/%s", eventType.SourceID, eventType.Name),
+		bytes.NewBuffer(body),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return resp, err
+	}
+	defer resp.Body.Close()
+	return resp, nil
 }
