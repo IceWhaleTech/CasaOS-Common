@@ -5,6 +5,11 @@ import (
 	"os"
 )
 
+const (
+	ZIMACUBE    = "ZimaCube"
+	ZIMACUBEPRO = "ZimaCubePro"
+)
+
 func GetModel() string {
 	src := "/sys/class/dmi/id/board_version"
 	_, err := os.Stat(src)
@@ -20,7 +25,14 @@ func GetModel() string {
 		if err != nil {
 			return ""
 		}
-		return string(content)
+		if string(content) == "ZimaCube" {
+			return ZIMACUBE
+		}
+		if string(content) == "ZimaCubePro" {
+			return ZIMACUBEPRO
+		}
+		return ""
+
 	}
 }
 func GetSerialNumber() string {
