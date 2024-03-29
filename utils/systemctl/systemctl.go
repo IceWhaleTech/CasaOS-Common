@@ -190,7 +190,7 @@ func DisableService(name string) error {
 	}
 
 	if properties["ActiveState"] == "active" {
-		return StopService(name)
+		_ = StopService(name) // don't care about the result
 	}
 
 	_, err = conn.DisableUnitFilesContext(ctx, []string{name}, false)
