@@ -139,7 +139,7 @@ func IsServiceRunning(name string) (bool, error) {
 	return property.Value.Value() == "active", nil
 }
 
-func EnableService(name string) error {
+func EnableService(nameOrPath string) error {
 	// connect to systemd
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
@@ -151,10 +151,12 @@ func EnableService(name string) error {
 
 	defer conn.Close()
 
-	_, _, err = conn.EnableUnitFilesContext(ctx, []string{name}, false, true)
+	_, _, err = conn.EnableUnitFilesContext(ctx, []string{nameOrPath}, false, true)
 	if err != nil {
 		return err
 	}
+
+	name := filepath.Base(nameOrPath)
 
 	// ensure service is enabled
 	property, err := conn.GetUnitPropertyContext(ctx, name, "ActiveState")
