@@ -10,7 +10,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.16
 	github.com/mholt/archiver/v3 v3.5.1
 	github.com/sirupsen/logrus v1.9.0
-	github.com/stretchr/testify v1.8.2
+	github.com/stretchr/testify v1.9.0
 	github.com/tidwall/gjson v1.17.0
 	go.uber.org/zap v1.24.0
 	gopkg.in/ini.v1 v1.67.0
@@ -18,6 +18,7 @@ require (
 )
 
 require (
+	github.com/NVIDIA/go-nvml v0.12.0-5 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/golang/protobuf v1.5.0 // indirect
 	github.com/kr/text v0.2.0 // indirect
