@@ -1,10 +1,12 @@
 package external
 
 import (
+	"fmt"
 	"os/exec"
 	"strconv"
 	"strings"
 
+	"github.com/NVIDIA/go-nvml/pkg/nvml"
 	"github.com/samber/lo"
 )
 
@@ -35,7 +37,87 @@ type NvidiaGPUInfo struct {
 	Utilization       float32 `json:"utilization"`
 }
 
-func NvidiaGPUInfoList() ([]NvidiaGPUInfo, error) {
+func NvidiaGPUInfoListWithNVMl() ([]NvidiaGPUInfo, error) {
+	var GPUInfos []NvidiaGPUInfo
+
+	// Initialize NVML
+	if err := nvml.Init(); err != nvml.SUCCESS {
+		return nil, fmt.Errorf("error initializing NVML: %w", err)
+	}
+	defer nvml.Shutdown()
+
+	// Get device count
+	deviceCount, err := nvml.DeviceGetCount()
+	if err != nvml.SUCCESS {
+		return nil, fmt.Errorf("error getting device count: %w", err)
+	}
+
+	for i := 0; i < deviceCount; i++ {
+		device, err := nvml.DeviceGetHandleByIndex(i)
+		if err != nvml.SUCCESS {
+			return nil, fmt.Errorf("error getting device handle: %w", err)
+		}
+
+		info := NvidiaGPUInfo{}
+		info.Index = int(i)
+
+		info.UUID, err = device.GetUUID()
+		if err != nvml.SUCCESS {
+			return nil, fmt.Errorf("error getting UUID: %w", err)
+		}
+
+		utilization, err := device.GetUtilizationRates()
+		if err != nvml.SUCCESS {
+			return nil, fmt.Errorf("error getting utilization rates: %w", err)
+		}
+		info.UtilizationGPU = int(utilization.Gpu)
+		info.MemoryUtilization = float32(utilization.Memory)
+
+		memInfo, err := device.GetMemoryInfo()
+		if err != nvml.SUCCESS {
+			return nil, fmt.Errorf("error getting memory info: %w", err)
+		}
+		info.MemoryTotal = int(memInfo.Total)
+		info.MemoryUsed = int(memInfo.Used)
+		info.MemoryFree = int(memInfo.Free)
+
+		info.Name, err = device.GetName()
+		if err != nvml.SUCCESS {
+			return nil, fmt.Errorf("error getting name: %w", err)
+		}
+
+		driverVersion, err := nvml.SystemGetDriverVersion()
+		if err != nvml.SUCCESS {
+			return nil, fmt.Errorf("error getting driver version: %w", err)
+		}
+		info.DriverVersion = driverVersion
+
+		temp, err := device.GetTemperature(nvml.TEMPERATURE_GPU)
+		if err != nvml.SUCCESS {
+			return nil, fmt.Errorf("error getting temperature: %w", err)
+		}
+		info.TemperatureGPU = int(temp)
+
+		powerDraw, err := device.GetPowerUsage()
+		if err != nvml.SUCCESS {
+			return nil, fmt.Errorf("error getting power usage: %w", err)
+		}
+		info.PowerDraw = float32(powerDraw) / 1000.0
+
+		powerLimit, err := device.GetEnforcedPowerLimit()
+		if err != nvml.SUCCESS {
+			return nil, fmt.Errorf("error getting power limit: %w", err)
+		}
+		info.PowerLimit = float32(powerLimit) / 1000.0
+		info.GPUSerial = "[N/A]"
+		GPUInfos = append(GPUInfos, info)
+
+	}
+
+	return GPUInfos, nil
+}
+
+func NvidiaGPUInfoListWithSMI() ([]NvidiaGPUInfo, error) {
 	GPUInfos := []NvidiaGPUInfo{}
 
 	output, err := exec.Command("nvidia-smi", "--query-gpu=index,uuid,utilization.gpu,memory.total,memory.used,memory.free,driver_version,name,gpu_serial,display_active,display_mode,temperature.gpu,utilization.gpu,utilization.memory,power.draw,power.limit", "--format=csv,noheader,nounits").Output()
@@ -80,6 +162,17 @@ func NvidiaGPUInfoList() ([]NvidiaGPUInfo, error) {
 		}
 	}
 	return GPUInfos, nil
+}
+
+func NvidiaGPUInfoList() ([]NvidiaGPUInfo, error) {
+	gpusInfo, err := NvidiaGPUInfoListWithNVMl()
+	if err != nil {
+		gpusInfo, err = NvidiaGPUInfoListWithSMI()
+		if err != nil {
+			return nil, err
+		}
+	}
+	return gpusInfo, nil
 }
 
 func GPUInfoList() ([]GPUInfo, error) {
