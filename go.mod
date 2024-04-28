@@ -3,6 +3,7 @@ module github.com/IceWhaleTech/CasaOS-Common
 go 1.20
 
 require (
+	github.com/NVIDIA/go-nvml v0.12.0-5
 	github.com/coreos/go-systemd/v22 v22.5.0
 	github.com/gin-gonic/gin v1.7.7
 	github.com/golang-jwt/jwt/v4 v4.5.0
@@ -18,7 +19,6 @@ require (
 )
 
 require (
-	github.com/NVIDIA/go-nvml v0.12.0-5 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/golang/protobuf v1.5.0 // indirect
 	github.com/kr/text v0.2.0 // indirect
