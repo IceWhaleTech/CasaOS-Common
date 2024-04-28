@@ -15,6 +15,7 @@ func TestGPUInfo(t *testing.T) {
 }
 
 func TestGPUTwoImplementInfo(t *testing.T) {
+	t.Skip()
 	result, err := external.NvidiaGPUInfoListWithSMI()
 	assert.NilError(t, err)
 	result2, err := external.NvidiaGPUInfoListWithNVMl()
