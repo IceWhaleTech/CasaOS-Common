@@ -18,7 +18,7 @@ func TestGPUTwoImplementInfo(t *testing.T) {
 	t.Skip()
 	result, err := external.NvidiaGPUInfoListWithSMI()
 	assert.NilError(t, err)
-	result2, err := external.NvidiaGPUInfoListWithNVMl()
+	result2, err := external.NvidiaGPUInfoListWithNVML()
 	assert.NilError(t, err)
 
 	assert.Equal(t, len(result), len(result2))
