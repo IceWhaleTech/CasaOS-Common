@@ -1,7 +1,6 @@
 package external
 
 import (
-	"fmt"
 	"os/exec"
 	"strconv"
 	"strings"
