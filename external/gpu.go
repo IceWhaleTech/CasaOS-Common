@@ -172,13 +172,9 @@ func NvidiaGPUInfoListWithSMI() ([]NvidiaGPUInfo, error) {
 }
 
 func NvidiaGPUInfoList() ([]NvidiaGPUInfo, error) {
-	gpusInfo, err := NvidiaGPUInfoListWithNVML()
+	gpusInfo, err := NvidiaGPUInfoListWithSMI()
 	if err != nil {
-		fmt.Println("Error getting GPU info with NVML, trying with nvidia-smi")
-		gpusInfo, err = NvidiaGPUInfoListWithSMI()
-		if err != nil {
-			return nil, err
-		}
+		return nil, err
 	}
 	return gpusInfo, nil
 }
