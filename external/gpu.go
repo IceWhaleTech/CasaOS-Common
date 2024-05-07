@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/NVIDIA/go-nvml/pkg/nvml"
 	"github.com/samber/lo"
 )
 
@@ -37,92 +36,92 @@ type NvidiaGPUInfo struct {
 	Utilization       float32 `json:"utilization"`
 }
 
-func NvidiaGPUInfoListWithNVML() (info []NvidiaGPUInfo, err error) {
-	// defer recover
-	defer func() {
-		if r := recover(); r != nil {
-			fmt.Println("Recovered in f", r)
-			err = fmt.Errorf("error getting GPU info: %v", r)
-		}
-	}()
-	var GPUInfos []NvidiaGPUInfo
+// func NvidiaGPUInfoListWithNVML() (info []NvidiaGPUInfo, err error) {
+// 	// defer recover
+// 	defer func() {
+// 		if r := recover(); r != nil {
+// 			fmt.Println("Recovered in f", r)
+// 			err = fmt.Errorf("error getting GPU info: %v", r)
+// 		}
+// 	}()
+// 	var GPUInfos []NvidiaGPUInfo
 
-	// Initialize NVML
-	if result := nvml.Init(); result != nvml.SUCCESS {
-		return nil, fmt.Errorf("error initializing NVML: %w", err)
-	}
-	defer nvml.Shutdown()
+// 	// Initialize NVML
+// 	if result := nvml.Init(); result != nvml.SUCCESS {
+// 		return nil, fmt.Errorf("error initializing NVML: %w", err)
+// 	}
+// 	defer nvml.Shutdown()
 
-	// Get device count
-	deviceCount, result := nvml.DeviceGetCount()
-	if result != nvml.SUCCESS {
-		return nil, fmt.Errorf("error getting device count: %w", err)
-	}
+// 	// Get device count
+// 	deviceCount, result := nvml.DeviceGetCount()
+// 	if result != nvml.SUCCESS {
+// 		return nil, fmt.Errorf("error getting device count: %w", err)
+// 	}
 
-	for i := 0; i < deviceCount; i++ {
-		device, result := nvml.DeviceGetHandleByIndex(i)
-		if result != nvml.SUCCESS {
-			return nil, fmt.Errorf("error getting device handle: %w", err)
-		}
+// 	for i := 0; i < deviceCount; i++ {
+// 		device, result := nvml.DeviceGetHandleByIndex(i)
+// 		if result != nvml.SUCCESS {
+// 			return nil, fmt.Errorf("error getting device handle: %w", err)
+// 		}
 
-		info := NvidiaGPUInfo{}
-		info.Index = int(i)
+// 		info := NvidiaGPUInfo{}
+// 		info.Index = int(i)
 
-		info.UUID, result = device.GetUUID()
-		if result != nvml.SUCCESS {
-			return nil, fmt.Errorf("error getting UUID: %w", err)
-		}
+// 		info.UUID, result = device.GetUUID()
+// 		if result != nvml.SUCCESS {
+// 			return nil, fmt.Errorf("error getting UUID: %w", err)
+// 		}
 
-		utilization, result := device.GetUtilizationRates()
-		if result != nvml.SUCCESS {
-			return nil, fmt.Errorf("error getting utilization rates: %w", err)
-		}
-		info.UtilizationGPU = int(utilization.Gpu)
-		info.MemoryUtilization = float32(utilization.Memory)
+// 		utilization, result := device.GetUtilizationRates()
+// 		if result != nvml.SUCCESS {
+// 			return nil, fmt.Errorf("error getting utilization rates: %w", err)
+// 		}
+// 		info.UtilizationGPU = int(utilization.Gpu)
+// 		info.MemoryUtilization = float32(utilization.Memory)
 
-		memInfo, result := device.GetMemoryInfo()
-		if result != nvml.SUCCESS {
-			return nil, fmt.Errorf("error getting memory info: %w", err)
-		}
-		info.MemoryTotal = int(memInfo.Total)
-		info.MemoryUsed = int(memInfo.Used)
-		info.MemoryFree = int(memInfo.Free)
+// 		memInfo, result := device.GetMemoryInfo()
+// 		if result != nvml.SUCCESS {
+// 			return nil, fmt.Errorf("error getting memory info: %w", err)
+// 		}
+// 		info.MemoryTotal = int(memInfo.Total)
+// 		info.MemoryUsed = int(memInfo.Used)
+// 		info.MemoryFree = int(memInfo.Free)
 
-		info.Name, result = device.GetName()
-		if result != nvml.SUCCESS {
-			return nil, fmt.Errorf("error getting name: %w", err)
-		}
+// 		info.Name, result = device.GetName()
+// 		if result != nvml.SUCCESS {
+// 			return nil, fmt.Errorf("error getting name: %w", err)
+// 		}
 
-		driverVersion, result := nvml.SystemGetDriverVersion()
-		if result != nvml.SUCCESS {
-			return nil, fmt.Errorf("error getting driver version: %w", err)
-		}
-		info.DriverVersion = driverVersion
+// 		driverVersion, result := nvml.SystemGetDriverVersion()
+// 		if result != nvml.SUCCESS {
+// 			return nil, fmt.Errorf("error getting driver version: %w", err)
+// 		}
+// 		info.DriverVersion = driverVersion
 
-		temp, result := device.GetTemperature(nvml.TEMPERATURE_GPU)
-		if result != nvml.SUCCESS {
-			return nil, fmt.Errorf("error getting temperature: %w", err)
-		}
-		info.TemperatureGPU = int(temp)
+// 		temp, result := device.GetTemperature(nvml.TEMPERATURE_GPU)
+// 		if result != nvml.SUCCESS {
+// 			return nil, fmt.Errorf("error getting temperature: %w", err)
+// 		}
+// 		info.TemperatureGPU = int(temp)
 
-		powerDraw, result := device.GetPowerUsage()
-		if result != nvml.SUCCESS {
-			return nil, fmt.Errorf("error getting power usage: %w", err)
-		}
-		info.PowerDraw = float32(powerDraw) / 1000.0
+// 		powerDraw, result := device.GetPowerUsage()
+// 		if result != nvml.SUCCESS {
+// 			return nil, fmt.Errorf("error getting power usage: %w", err)
+// 		}
+// 		info.PowerDraw = float32(powerDraw) / 1000.0
 
-		powerLimit, result := device.GetEnforcedPowerLimit()
-		if result != nvml.SUCCESS {
-			return nil, fmt.Errorf("error getting power limit: %w", err)
-		}
-		info.PowerLimit = float32(powerLimit) / 1000.0
-		info.GPUSerial = "[N/A]"
-		GPUInfos = append(GPUInfos, info)
+// 		powerLimit, result := device.GetEnforcedPowerLimit()
+// 		if result != nvml.SUCCESS {
+// 			return nil, fmt.Errorf("error getting power limit: %w", err)
+// 		}
+// 		info.PowerLimit = float32(powerLimit) / 1000.0
+// 		info.GPUSerial = "[N/A]"
+// 		GPUInfos = append(GPUInfos, info)
 
-	}
+// 	}
 
-	return GPUInfos, nil
-}
+// 	return GPUInfos, nil
+// }
 
 func NvidiaGPUInfoListWithSMI() ([]NvidiaGPUInfo, error) {
 	GPUInfos := []NvidiaGPUInfo{}
@@ -172,13 +171,9 @@ func NvidiaGPUInfoListWithSMI() ([]NvidiaGPUInfo, error) {
 }
 
 func NvidiaGPUInfoList() ([]NvidiaGPUInfo, error) {
-	gpusInfo, err := NvidiaGPUInfoListWithNVML()
+	gpusInfo, err := NvidiaGPUInfoListWithSMI()
 	if err != nil {
-		fmt.Println("Error getting GPU info with NVML, trying with nvidia-smi")
-		gpusInfo, err = NvidiaGPUInfoListWithSMI()
-		if err != nil {
-			return nil, err
-		}
+		return nil, err
 	}
 	return gpusInfo, nil
 }
