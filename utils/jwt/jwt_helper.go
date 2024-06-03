@@ -11,9 +11,9 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/IceWhaleTech/CasaOS-Common/model"
-	"github.com/IceWhaleTech/CasaOS-Common/utils/common_err"
-	"github.com/gin-gonic/gin"
+	echojwt "github.com/labstack/echo-jwt/v4"
+	"github.com/labstack/echo/v4"
+	echo_middleware "github.com/labstack/echo/v4/middleware"
 )
 
 type JWK struct {
@@ -29,35 +29,31 @@ type JWKS struct {
 
 const JWKSPath = ".well-known/jwks.json"
 
-func ExceptLocalhost(publicKeyFunc func() (*ecdsa.PublicKey, error)) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		if c.ClientIP() == "::1" || c.ClientIP() == "127.0.0.1" {
-			c.Next()
-			return
-		}
+func JWT(publicKeyFunc func() (*ecdsa.PublicKey, error)) echo.MiddlewareFunc {
+	return echojwt.WithConfig(
+		echojwt.Config{
+			Skipper: func(c echo.Context) bool {
+				return c.RealIP() == "::1" || c.RealIP() == "127.0.0.1"
+			},
+			ParseTokenFunc: func(c echo.Context, token string) (interface{}, error) {
+				valid, claims, err := Validate(token, publicKeyFunc)
+				if err != nil || !valid {
+					return nil, echo.ErrUnauthorized
+				}
+				c.Request().Header.Set("user_id", strconv.Itoa(claims.ID))
 
-		JWT(publicKeyFunc)(c)
-	}
-}
-
-func JWT(publicKeyFunc func() (*ecdsa.PublicKey, error)) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		token := c.GetHeader("Authorization")
-		if len(token) == 0 {
-			token = c.Query("token")
-		}
-
-		valid, claims, err := Validate(token, publicKeyFunc)
-		if err != nil || !valid {
-			message := "token is invalid"
-			c.JSON(http.StatusUnauthorized, model.Result{Success: common_err.ERROR_AUTH_TOKEN, Message: message})
-			c.Abort()
-			return
-		}
-
-		c.Request.Header.Add("user_id", strconv.Itoa(claims.ID))
-		c.Next()
-	}
+				return claims, nil
+			},
+			TokenLookupFuncs: []echo_middleware.ValuesExtractor{
+				func(c echo.Context) ([]string, error) {
+					if len(c.Request().Header.Get(echo.HeaderAuthorization)) > 0 {
+						return []string{c.Request().Header.Get(echo.HeaderAuthorization)}, nil
+					}
+					return []string{c.QueryParam("token")}, nil
+				},
+			},
+		},
+	)
 }
 
 func GenerateKeyPair() (*ecdsa.PrivateKey, *ecdsa.PublicKey, error) {

@@ -10,7 +10,7 @@ import (
 	"github.com/IceWhaleTech/CasaOS-Common/model"
 	"github.com/IceWhaleTech/CasaOS-Common/utils/common_err"
 	"github.com/IceWhaleTech/CasaOS-Common/utils/jwt"
-	"github.com/gin-gonic/gin"
+	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -108,11 +108,10 @@ func TestJWTMiddlewareWithValidToken(t *testing.T) {
 	}
 
 	// Create a Gin test context and a response recorder.
-	gin.SetMode(gin.TestMode)
-	router := gin.New()
+	router := echo.New()
 	router.Use(jwt.JWT(mockPublicKeyFunc))
-	router.GET("/test", func(c *gin.Context) {
-		c.JSON(http.StatusOK, model.Result{
+	router.GET("/test", func(c echo.Context) error {
+		return c.JSON(http.StatusOK, model.Result{
 			Success: common_err.SUCCESS,
 			Message: "success",
 		})
@@ -146,14 +145,18 @@ func TestJWTMiddlewareWithInvalidToken(t *testing.T) {
 	}
 
 	// Create a Gin test context and a response recorder.
-	gin.SetMode(gin.TestMode)
-	router := gin.New()
+	router := echo.New()
 	router.Use(jwt.JWT(mockPublicKeyFunc))
-	router.Use(func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"message": "success"})
+
+	router.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			c.JSON(http.StatusOK, echo.Map{"message": "success"})
+			return next(c)
+		}
 	})
-	router.GET("/test", func(c *gin.Context) {
+	router.GET("/test", func(c echo.Context) error {
 		assert.Fail(t, "this handler should not be called")
+		return nil
 	})
 
 	req, _ := http.NewRequest(http.MethodGet, "/test", nil)
