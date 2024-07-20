@@ -1,8 +1,6 @@
 module github.com/IceWhaleTech/CasaOS-Common
 
-go 1.21
-
-toolchain go1.21.11
+go 1.20
 
 require (
 	github.com/coreos/go-systemd/v22 v22.5.0
