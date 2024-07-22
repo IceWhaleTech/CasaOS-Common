@@ -21,6 +21,7 @@ require (
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
+	github.com/google/safetext v0.0.0-20240104143208-7a7d9b3d812f // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/labstack/gommon v0.4.2 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
@@ -34,6 +35,7 @@ require (
 	golang.org/x/net v0.25.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
+	mvdan.cc/sh/v3 v3.7.0 // indirect
 )
 
 require (
