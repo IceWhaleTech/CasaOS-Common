@@ -11,6 +11,8 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/IceWhaleTech/CasaOS-Common/model"
+	"github.com/IceWhaleTech/CasaOS-Common/utils/common_err"
 	echojwt "github.com/labstack/echo-jwt/v4"
 	"github.com/labstack/echo/v4"
 	echo_middleware "github.com/labstack/echo/v4/middleware"
@@ -38,6 +40,8 @@ func JWT(publicKeyFunc func() (*ecdsa.PublicKey, error)) echo.MiddlewareFunc {
 			ParseTokenFunc: func(c echo.Context, token string) (interface{}, error) {
 				valid, claims, err := Validate(token, publicKeyFunc)
 				if err != nil || !valid {
+					message := "token is invalid"
+					c.JSON(http.StatusUnauthorized, model.Result{Success: common_err.ERROR_AUTH_TOKEN, Message: message})
 					return nil, echo.ErrUnauthorized
 				}
 				c.Request().Header.Set("user_id", strconv.Itoa(claims.ID))
