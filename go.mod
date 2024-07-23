@@ -19,6 +19,7 @@ require (
 )
 
 require (
+	github.com/NVIDIA/go-nvml v0.12.4-0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
 	github.com/google/safetext v0.0.0-20240104143208-7a7d9b3d812f // indirect

@@ -1,8 +1,5 @@
 package external_test
 
-import (
-)
-
 // func TestGPUInfo(t *testing.T) {
 // 	t.Skip()
 // 	result, err := external.GPUInfoList()
