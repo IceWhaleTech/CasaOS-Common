@@ -2,8 +2,6 @@ module github.com/IceWhaleTech/CasaOS-Common
 
 go 1.21
 
-toolchain go1.22.3
-
 require (
 	github.com/coreos/go-systemd/v22 v22.5.0
 	github.com/golang-jwt/jwt/v5 v5.0.0

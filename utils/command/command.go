@@ -27,17 +27,15 @@ func OnlyExec(cmdStr string) error {
 	return cmd.Wait()
 }
 
-func ExecResultStrArray(cmdStr string) []string {
+func ExecResultStrArray(cmdStr string) ([]string, error) {
 	cmd := exec2.Command("/bin/bash", "-c", cmdStr)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		fmt.Println(err)
-		return nil
+		return nil, err
 	}
 	defer stdout.Close()
 	if err = cmd.Start(); err != nil {
-		fmt.Println(err)
-		return nil
+		return nil, err
 	}
 	// str, err := ioutil.ReadAll(stdout)
 	networklist := []string{}
@@ -53,50 +51,42 @@ func ExecResultStrArray(cmdStr string) []string {
 		networklist = append(networklist, string(output))
 	}
 
-	if err := cmd.Wait(); err != nil {
-		fmt.Println(err)
-	}
-
-	return networklist
+	return networklist, cmd.Wait()
 }
 
-func ExecResultStr(cmdStr string) string {
+func ExecResultStr(cmdStr string) (string, error) {
 	cmd := exec2.Command("/bin/bash", "-c", cmdStr)
 	println(cmd.String())
 
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		fmt.Println(err)
-		return ""
+		return "", err
 	}
 	defer stdout.Close()
 	if err = cmd.Start(); err != nil {
 		fmt.Println(err)
-		return ""
+		return "", err
 	}
 	str, err := io.ReadAll(stdout)
 	if err != nil {
 		fmt.Println(err)
-		return ""
+		return "", err
 	}
 
-	if err = cmd.Wait(); err != nil {
-		fmt.Println(err)
-	}
-
-	return string(str)
+	return string(str), cmd.Wait()
 }
 
-func ExecuteScripts(scriptDirectory string) {
+func ExecuteScripts(scriptDirectory string) error {
 	if _, err := os.Stat(scriptDirectory); os.IsNotExist(err) {
 		fmt.Printf("No post-start scripts at %s\n", scriptDirectory)
-		return
+		return err
 	}
 
 	files, err := os.ReadDir(scriptDirectory)
 	if err != nil {
 		fmt.Printf("Failed to read from script directory %s: %s\n", scriptDirectory, err.Error())
-		return
+		return err
 	}
 
 	for _, file := range files {
@@ -132,7 +122,9 @@ func ExecuteScripts(scriptDirectory string) {
 		err = cmd.Run()
 		if err != nil {
 			fmt.Printf("Failed to execute post-start script %s: %s\n", scriptFilepath, err.Error())
+			return err
 		}
 	}
 	fmt.Println("Finished executing post-start scripts.")
+	return nil
 }
