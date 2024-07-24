@@ -16,7 +16,7 @@ var LastPowerDraw float32
 func init() {
 	// Initialize NVML
 	if result := nvml.Init(); result != nvml.SUCCESS {
-		fmt.Printf("error initializing NVML: %w\n", result)
+		fmt.Printf("error initializing NVML: %+v\n", result)
 	}
 }
 
