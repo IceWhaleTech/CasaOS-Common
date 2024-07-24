@@ -9,7 +9,6 @@ import (
 
 	"github.com/NVIDIA/go-nvml/pkg/nvml"
 	"github.com/samber/lo"
-	"gorm.io/gorm/logger"
 )
 
 var LastPowerDraw float32
@@ -17,7 +16,7 @@ var LastPowerDraw float32
 func init() {
 	// Initialize NVML
 	if result := nvml.Init(); result != nvml.SUCCESS {
-		logger.Error("error initializing NVML: %w", result)
+		fmt.Printf("error initializing NVML: %w\n", result)
 	}
 }
 
