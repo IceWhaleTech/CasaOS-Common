@@ -11,33 +11,55 @@ import (
 	exec2 "github.com/IceWhaleTech/CasaOS-Common/utils/exec"
 )
 
-func OnlyExec(cmdStr string) error {
-	cmd := exec2.Command("/bin/bash", "-c", cmdStr)
+// Deprecated: This method is not safe, sould have ensure input.
+func OnlyExec(cmdStr string) (string, error) {
+	cmds := strings.Fields(cmdStr)
+	cmd := exec2.Command(cmds[0], cmds[1:]...)
+	println(cmd.String())
+	buf, err := cmd.CombinedOutput()
+	println(string(buf))
+	return string(buf), err
+}
+
+func ExecResultStr(cmdStr string) (string, error) {
+	cmds := strings.Fields(cmdStr)
+	cmd := exec2.Command(cmds[0], cmds[1:]...)
+	println(cmd.String())
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		fmt.Println(err)
-		return err
-	}
-	defer stdout.Close()
-	if err := cmd.Start(); err != nil {
-		fmt.Println(err)
-		return err
+		return "", err
 	}
 
-	return cmd.Wait()
+	defer stdout.Close()
+	if err = cmd.Start(); err != nil {
+		return "", err
+	}
+
+	buf, err := io.ReadAll(stdout)
+	if err != nil {
+		return "", err
+	}
+
+	return string(buf), cmd.Wait()
 }
 
 func ExecResultStrArray(cmdStr string) ([]string, error) {
-	cmd := exec2.Command("/bin/bash", "-c", cmdStr)
+	cmds := strings.Fields(cmdStr)
+	cmd := exec2.Command(cmds[0], cmds[1:]...)
+
+	println(cmd.String())
+
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return nil, err
 	}
 	defer stdout.Close()
+
 	if err = cmd.Start(); err != nil {
 		return nil, err
 	}
-	networklist := []string{}
+
+	buf := []string{}
 	outputBuf := bufio.NewReader(stdout)
 	for {
 		output, _, err := outputBuf.ReadLine()
@@ -47,33 +69,10 @@ func ExecResultStrArray(cmdStr string) ([]string, error) {
 			}
 			break
 		}
-		networklist = append(networklist, string(output))
+		buf = append(buf, string(output))
 	}
 
-	return networklist, cmd.Wait()
-}
-
-func ExecResultStr(cmdStr string) (string, error) {
-	cmd := exec2.Command("/bin/bash", "-c", cmdStr)
-	println(cmd.String())
-
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		fmt.Println(err)
-		return "", err
-	}
-	defer stdout.Close()
-	if err = cmd.Start(); err != nil {
-		fmt.Println(err)
-		return "", err
-	}
-	str, err := io.ReadAll(stdout)
-	if err != nil {
-		fmt.Println(err)
-		return "", err
-	}
-
-	return string(str), cmd.Wait()
+	return buf, cmd.Wait()
 }
 
 func ExecuteScripts(scriptDirectory string) error {
