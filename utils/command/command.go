@@ -37,7 +37,6 @@ func ExecResultStrArray(cmdStr string) ([]string, error) {
 	if err = cmd.Start(); err != nil {
 		return nil, err
 	}
-	// str, err := ioutil.ReadAll(stdout)
 	networklist := []string{}
 	outputBuf := bufio.NewReader(stdout)
 	for {

@@ -1,6 +1,11 @@
 package command
 
-import "testing"
+import (
+	"os"
+	"testing"
+
+	"go.uber.org/goleak"
+)
 
 func TestCommand(t *testing.T) {
 	tests := []struct {
@@ -60,6 +65,35 @@ func TestCommand(t *testing.T) {
 		},
 	}
 
+	t.Run("TestExecuteScripts", func(t *testing.T) {
+		goleak.VerifyNone(t)
+
+		// make a temp directory
+		tmpDir, err := os.MkdirTemp("", "casaos-test-*")
+		if err != nil {
+			t.Error(err)
+		}
+		defer os.RemoveAll(tmpDir)
+
+		ExecuteScripts(tmpDir)
+
+		// create a sample script under tmpDir
+		script := tmpDir + "/test.sh"
+		f, err := os.Create(script)
+		if err != nil {
+			t.Error(err)
+		}
+		defer f.Close()
+
+		// write a sample script
+		_, err = f.WriteString("#!/bin/bash\necho 123")
+		if err != nil {
+			t.Error(err)
+		}
+
+		ExecuteScripts(tmpDir)
+	})
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := OnlyExec(tt.cmdStr); tt.noErr != (err == nil) {
@@ -68,9 +102,19 @@ func TestCommand(t *testing.T) {
 		})
 
 		t.Run(tt.name, func(t *testing.T) {
+			if output, err := ExecResultStr(tt.cmdStr); tt.noErr != (err == nil) {
+				t.Errorf("ExecResultStr() error = %v, wantErr %v", err, tt.noErr)
+			} else {
+				t.Logf("Output: %s", output)
+			}
 		})
 
 		t.Run(tt.name, func(t *testing.T) {
+			if output, error := ExecResultStrArray(tt.cmdStr); tt.noErr != (error == nil) {
+				t.Errorf("ExecResultStrArray() error = %v, wantErr %v", error, tt.noErr)
+			} else {
+				t.Logf("Output: %v", output)
+			}
 		})
 	}
 }
