@@ -3,6 +3,9 @@ package external
 import (
 	"fmt"
 	"math"
+	"os/exec"
+	"strconv"
+	"strings"
 
 	"github.com/NVIDIA/go-nvml/pkg/nvml"
 	"github.com/samber/lo"
@@ -112,7 +115,7 @@ func NvidiaGPUInfoListWithNVML() (info []NvidiaGPUInfo, err error) {
 			return nil, fmt.Errorf("error getting power usage: %w", err)
 		}
 		info.PowerDraw = float32(powerDraw) / 1000.0
-		if math.Abs(info.PowerDraw) < 1e-6 {
+		if math.Abs(float64(info.PowerDraw)) < 1e-6 {
 			info.PowerDraw = LastPowerDraw
 		} else {
 			LastPowerDraw = info.PowerDraw
@@ -123,14 +126,17 @@ func NvidiaGPUInfoListWithNVML() (info []NvidiaGPUInfo, err error) {
 			return nil, fmt.Errorf("error getting power limit: %w", err)
 		}
 		info.PowerLimit = float32(powerLimit) / 1000.0
-		info.GPUSerial = "[N/A]"
+
+		info.GPUSerial, result = device.GetSerial()
+		if result != nvml.SUCCESS {
+			return nil, fmt.Errorf("error getting GPU serial: %w", err)
+		}
 		GPUInfos = append(GPUInfos, info)
 	}
 
 	return GPUInfos, nil
 }
 
-/*
 func NvidiaGPUInfoListWithSMI() ([]NvidiaGPUInfo, error) {
 	GPUInfos := []NvidiaGPUInfo{}
 
@@ -176,7 +182,7 @@ func NvidiaGPUInfoListWithSMI() ([]NvidiaGPUInfo, error) {
 		}
 	}
 	return GPUInfos, nil
-}*/
+}
 
 func NvidiaGPUInfoList() ([]NvidiaGPUInfo, error) {
 	gpusInfo, err := NvidiaGPUInfoListWithNVML()
