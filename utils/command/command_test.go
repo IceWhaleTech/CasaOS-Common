@@ -16,12 +16,10 @@ func TestCommand(t *testing.T) {
 			cmdStr: "ls -l",
 			noErr:  true,
 		},
-		// TODO: Fix this test
-		// {
-		// 	name:   "Test Command with noescape",
-		// 	cmdStr: "ls -l whoami",
-		// 	noErr:  true,
-		// },
+		{
+			name:   "Test Command with noescape",
+			cmdStr: "ls -l whoami",
+		},
 		{
 			name:   "Test Command with error",
 			cmdStr: "`whoami` -l /test",
