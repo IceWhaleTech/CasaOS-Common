@@ -1,10 +1,13 @@
 module github.com/IceWhaleTech/CasaOS-Common
 
-go 1.20
+go 1.21
+
+toolchain go1.22.3
 
 require (
 	github.com/coreos/go-systemd/v22 v22.5.0
 	github.com/golang-jwt/jwt/v5 v5.0.0
+	github.com/google/safetext v0.0.0-20240104143208-7a7d9b3d812f
 	github.com/gorilla/websocket v1.5.0
 	github.com/labstack/echo-jwt/v4 v4.2.0
 	github.com/labstack/echo/v4 v4.12.0
@@ -21,8 +24,6 @@ require (
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
-	github.com/google/safetext v0.0.0-20240104143208-7a7d9b3d812f // indirect
-	github.com/kr/text v0.2.0 // indirect
 	github.com/labstack/gommon v0.4.2 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
