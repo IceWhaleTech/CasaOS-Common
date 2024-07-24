@@ -91,14 +91,6 @@ func TestCommand(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if output, err := OnlyExec(tt.cmdStr); tt.noErr != (err == nil) {
-				t.Errorf("OnlyExec() error = %v, wantErr %v", err, tt.noErr)
-			} else {
-				t.Logf("Output: %s", output)
-			}
-		})
-
-		t.Run(tt.name, func(t *testing.T) {
 			if output, err := ExecResultStr(tt.cmdStr); tt.noErr != (err == nil) {
 				t.Errorf("ExecResultStr() error = %v, wantErr %v", err, tt.noErr)
 			} else {

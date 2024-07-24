@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -13,8 +14,7 @@ import (
 
 // Deprecated: This method is not safe, sould have ensure input.
 func OnlyExec(cmdStr string) (string, error) {
-	cmds := strings.Fields(cmdStr)
-	cmd := exec2.Command(cmds[0], cmds[1:]...)
+	cmd := exec.Command("/bin/bash", "-c", cmdStr)
 	println(cmd.String())
 	buf, err := cmd.CombinedOutput()
 	println(string(buf))
