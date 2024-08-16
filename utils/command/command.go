@@ -2,6 +2,7 @@ package command
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"os"
@@ -24,58 +25,42 @@ func ExecResultStr(cmdStr string) (string, error) {
 	cmds := strings.Fields(cmdStr)
 	cmd := exec2.Command(cmds[0], cmds[1:]...)
 	fmt.Printf("Executing command: %s\n", cmd.String())
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
+
+	var buf bytes.Buffer
+	cmd.Stdout = &buf
+	cmd.Stderr = &buf
+
+	if err := cmd.Start(); err != nil {
 		return "", err
 	}
 
-	defer stdout.Close()
-	if err = cmd.Start(); err != nil {
-		return "", err
-	}
-
-	fmt.Printf("Command stderr: %s\n", cmd.Stderr)
-
-	buf, err := io.ReadAll(stdout)
-	if err != nil {
-		return "", err
-	}
-
-	return string(buf), cmd.Wait()
+	return buf.String(), cmd.Wait()
 }
 
 func ExecResultStrArray(cmdStr string) ([]string, error) {
 	cmds := strings.Fields(cmdStr)
 	cmd := exec2.Command(cmds[0], cmds[1:]...)
-
 	fmt.Printf("Executing command: %s\n", cmd.String())
 
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
+	var buf bytes.Buffer
+	cmd.Stdout = &buf
+	cmd.Stderr = &buf
+
+	if err := cmd.Start(); err != nil {
 		return nil, err
 	}
-	defer stdout.Close()
 
-	if err = cmd.Start(); err != nil {
+	var result []string
+	scanner := bufio.NewScanner(strings.NewReader(buf.String()))
+	for scanner.Scan() {
+		result = append(result, scanner.Text())
+	}
+
+	if err := scanner.Err(); err != nil {
 		return nil, err
 	}
 
-	fmt.Printf("Command stderr: %s\n", cmd.Stderr)
-
-	buf := []string{}
-	outputBuf := bufio.NewReader(stdout)
-	for {
-		output, _, err := outputBuf.ReadLine()
-		if err != nil {
-			if err.Error() != "EOF" {
-				fmt.Printf("Error :%s\n", err)
-			}
-			break
-		}
-		buf = append(buf, string(output))
-	}
-
-	return buf, cmd.Wait()
+	return result, cmd.Wait()
 }
 
 func ExecuteScripts(scriptDirectory string) error {
@@ -140,25 +125,23 @@ func ExecStdin(stdinStr string, name string, args ...string) error {
 
 	fmt.Printf("Executing command: %s\n", cmd.String())
 
+	var buf bytes.Buffer
+	cmd.Stdout = &buf
+	cmd.Stderr = &buf
+
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		return err
 	}
 	defer stdin.Close()
 
-	if err := cmd.Start(); err != nil {
-		return err
-	}
-
-	fmt.Printf("Command stderr: %s\n", cmd.Stderr)
-
 	if _, err := io.WriteString(stdin, stdinStr); err != nil {
 		return err
 	}
 
-	if err := cmd.Wait(); err != nil {
+	if err := cmd.Start(); err != nil {
 		return err
 	}
 
-	return nil
+	return cmd.Wait()
 }

@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestCommand(t *testing.T) {
+func TestSafeCommand(t *testing.T) {
 	tests := []struct {
 		name   string
 		cmdStr string
@@ -60,6 +60,10 @@ func TestCommand(t *testing.T) {
 			name:   "Test Command with new-line injection shell script",
 			cmdStr: "source /etc/local-storage-helper.sh\nenv",
 		},
+		{
+			name:   "Delete SMB User",
+			cmdStr: "smbpasswd -x testuser",
+		},
 	}
 
 	t.Run("TestExecuteScripts", func(t *testing.T) {
@@ -105,5 +109,14 @@ func TestCommand(t *testing.T) {
 				t.Logf("Output: %v", output)
 			}
 		})
+	}
+}
+
+func TestCommand(t *testing.T) {
+	output, err := ExecResultStr("smbpasswd -x testuser")
+	if err != nil {
+		t.Error(err)
+	} else {
+		t.Logf("Output: %s", output)
 	}
 }
