@@ -15,16 +15,15 @@ import (
 // Deprecated: This method is not safe, sould have ensure input.
 func OnlyExec(cmdStr string) (string, error) {
 	cmd := exec.Command("/bin/bash", "-c", cmdStr)
-	println(cmd.String())
+	fmt.Println(cmd.String())
 	buf, err := cmd.CombinedOutput()
-	println(string(buf))
 	return string(buf), err
 }
 
 func ExecResultStr(cmdStr string) (string, error) {
 	cmds := strings.Fields(cmdStr)
 	cmd := exec2.Command(cmds[0], cmds[1:]...)
-	println(cmd.String())
+	fmt.Printf("Executing command: %s\n", cmd.String())
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return "", err
@@ -34,6 +33,8 @@ func ExecResultStr(cmdStr string) (string, error) {
 	if err = cmd.Start(); err != nil {
 		return "", err
 	}
+
+	fmt.Printf("Command stderr: %s\n", cmd.Stderr)
 
 	buf, err := io.ReadAll(stdout)
 	if err != nil {
@@ -47,7 +48,7 @@ func ExecResultStrArray(cmdStr string) ([]string, error) {
 	cmds := strings.Fields(cmdStr)
 	cmd := exec2.Command(cmds[0], cmds[1:]...)
 
-	println(cmd.String())
+	fmt.Printf("Executing command: %s\n", cmd.String())
 
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
@@ -58,6 +59,8 @@ func ExecResultStrArray(cmdStr string) ([]string, error) {
 	if err = cmd.Start(); err != nil {
 		return nil, err
 	}
+
+	fmt.Printf("Command stderr: %s\n", cmd.Stderr)
 
 	buf := []string{}
 	outputBuf := bufio.NewReader(stdout)
@@ -118,11 +121,44 @@ func ExecuteScripts(scriptDirectory string) error {
 		cmd.Stderr = os.Stderr
 
 		err = cmd.Run()
+
+		fmt.Printf("Command stderr: %s\n", cmd.Stderr)
+
 		if err != nil {
 			fmt.Printf("Failed to execute post-start script %s: %s\n", scriptFilepath, err.Error())
 			return err
 		}
+
 	}
 	fmt.Println("Finished executing post-start scripts.")
+
+	return nil
+}
+
+func ExecStdin(stdinStr string, name string, args ...string) error {
+	cmd := exec.Command(name, args...)
+
+	fmt.Printf("Executing command: %s\n", cmd.String())
+
+	stdin, err := cmd.StdinPipe()
+	if err != nil {
+		return err
+	}
+	defer stdin.Close()
+
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+
+	fmt.Printf("Command stderr: %s\n", cmd.Stderr)
+
+	if _, err := io.WriteString(stdin, stdinStr); err != nil {
+		return err
+	}
+
+	if err := cmd.Wait(); err != nil {
+		return err
+	}
+
 	return nil
 }
