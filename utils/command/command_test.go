@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestSafeCommand(t *testing.T) {
+func TestCommand(t *testing.T) {
 	tests := []struct {
 		name   string
 		cmdStr string
@@ -109,14 +109,5 @@ func TestSafeCommand(t *testing.T) {
 				t.Logf("Output: %v", output)
 			}
 		})
-	}
-}
-
-func TestCommand(t *testing.T) {
-	output, err := ExecResultStr("smbpasswd -x testuser")
-	if err != nil {
-		t.Error(err)
-	} else {
-		t.Logf("Output: %s", output)
 	}
 }
