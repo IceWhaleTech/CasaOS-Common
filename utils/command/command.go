@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -26,41 +25,22 @@ func ExecResultStr(cmdStr string) (string, error) {
 	cmd := exec2.Command(cmds[0], cmds[1:]...)
 	fmt.Printf("Executing command: %s\n", cmd.String())
 
-	var buf bytes.Buffer
-	cmd.Stdout = &buf
-	cmd.Stderr = &buf
-
-	if err := cmd.Start(); err != nil {
-		return "", err
-	}
-
-	return buf.String(), cmd.Wait()
+	output, err := cmd.CombinedOutput()
+	return string(output), err
 }
 
 func ExecResultStrArray(cmdStr string) ([]string, error) {
 	cmds := strings.Fields(cmdStr)
-	cmd := exec2.Command(cmds[0], cmds[1:]...)
+	cmd := exec.Command(cmds[0], cmds[1:]...)
 	fmt.Printf("Executing command: %s\n", cmd.String())
 
-	var buf bytes.Buffer
-	cmd.Stdout = &buf
-	cmd.Stderr = &buf
-
-	if err := cmd.Start(); err != nil {
+	output, err := cmd.CombinedOutput()
+	if err != nil {
 		return nil, err
 	}
 
-	var result []string
-	scanner := bufio.NewScanner(strings.NewReader(buf.String()))
-	for scanner.Scan() {
-		result = append(result, scanner.Text())
-	}
-
-	if err := scanner.Err(); err != nil {
-		return nil, err
-	}
-
-	return result, cmd.Wait()
+	result := strings.Split(string(output), "\n")
+	return result, nil
 }
 
 func ExecuteScripts(scriptDirectory string) error {
@@ -102,13 +82,7 @@ func ExecuteScripts(scriptDirectory string) error {
 
 		fmt.Printf("Executing post-start script %s using %s\n", scriptFilepath, interpreter)
 
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-
-		err = cmd.Run()
-
-		fmt.Printf("Command stderr: %s\n", cmd.Stderr)
-
+		_, err = cmd.CombinedOutput()
 		if err != nil {
 			fmt.Printf("Failed to execute post-start script %s: %s\n", scriptFilepath, err.Error())
 			return err
@@ -120,28 +94,21 @@ func ExecuteScripts(scriptDirectory string) error {
 	return nil
 }
 
-func ExecStdin(stdinStr string, name string, args ...string) error {
+func ExecStdin(stdinStr string, name string, args ...string) (string, error) {
 	cmd := exec.Command(name, args...)
-
 	fmt.Printf("Executing command: %s\n", cmd.String())
 
 	var buf bytes.Buffer
 	cmd.Stdout = &buf
 	cmd.Stderr = &buf
 
-	stdin, err := cmd.StdinPipe()
+	cmd.Stdin = bytes.NewBufferString(stdinStr)
+
+	err := cmd.Run()
 	if err != nil {
-		return err
-	}
-	defer stdin.Close()
-
-	if _, err := io.WriteString(stdin, stdinStr); err != nil {
-		return err
+		fmt.Printf("Failed to execute command %s: %s\n", cmd.String(), err.Error())
+		return "", err
 	}
 
-	if err := cmd.Start(); err != nil {
-		return err
-	}
-
-	return cmd.Wait()
+	return buf.String(), nil
 }
