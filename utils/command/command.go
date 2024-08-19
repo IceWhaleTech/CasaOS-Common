@@ -2,8 +2,8 @@ package command
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -15,64 +15,32 @@ import (
 // Deprecated: This method is not safe, sould have ensure input.
 func OnlyExec(cmdStr string) (string, error) {
 	cmd := exec.Command("/bin/bash", "-c", cmdStr)
-	println(cmd.String())
+	fmt.Println(cmd.String())
 	buf, err := cmd.CombinedOutput()
-	println(string(buf))
 	return string(buf), err
 }
 
 func ExecResultStr(cmdStr string) (string, error) {
 	cmds := strings.Fields(cmdStr)
 	cmd := exec2.Command(cmds[0], cmds[1:]...)
-	println(cmd.String())
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		return "", err
-	}
+	fmt.Printf("Executing command: %s\n", cmd.String())
 
-	defer stdout.Close()
-	if err = cmd.Start(); err != nil {
-		return "", err
-	}
-
-	buf, err := io.ReadAll(stdout)
-	if err != nil {
-		return "", err
-	}
-
-	return string(buf), cmd.Wait()
+	output, err := cmd.CombinedOutput()
+	return string(output), err
 }
 
 func ExecResultStrArray(cmdStr string) ([]string, error) {
 	cmds := strings.Fields(cmdStr)
-	cmd := exec2.Command(cmds[0], cmds[1:]...)
+	cmd := exec.Command(cmds[0], cmds[1:]...)
+	fmt.Printf("Executing command: %s\n", cmd.String())
 
-	println(cmd.String())
-
-	stdout, err := cmd.StdoutPipe()
+	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return nil, err
 	}
-	defer stdout.Close()
 
-	if err = cmd.Start(); err != nil {
-		return nil, err
-	}
-
-	buf := []string{}
-	outputBuf := bufio.NewReader(stdout)
-	for {
-		output, _, err := outputBuf.ReadLine()
-		if err != nil {
-			if err.Error() != "EOF" {
-				fmt.Printf("Error :%s\n", err)
-			}
-			break
-		}
-		buf = append(buf, string(output))
-	}
-
-	return buf, cmd.Wait()
+	result := strings.Split(string(output), "\n")
+	return result, nil
 }
 
 func ExecuteScripts(scriptDirectory string) error {
@@ -114,15 +82,33 @@ func ExecuteScripts(scriptDirectory string) error {
 
 		fmt.Printf("Executing post-start script %s using %s\n", scriptFilepath, interpreter)
 
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-
-		err = cmd.Run()
+		_, err = cmd.CombinedOutput()
 		if err != nil {
 			fmt.Printf("Failed to execute post-start script %s: %s\n", scriptFilepath, err.Error())
 			return err
 		}
+
 	}
 	fmt.Println("Finished executing post-start scripts.")
+
 	return nil
+}
+
+func ExecStdin(stdinStr string, name string, args ...string) (string, error) {
+	cmd := exec.Command(name, args...)
+	fmt.Printf("Executing command: %s\n", cmd.String())
+
+	var buf bytes.Buffer
+	cmd.Stdout = &buf
+	cmd.Stderr = &buf
+
+	cmd.Stdin = bytes.NewBufferString(stdinStr)
+
+	err := cmd.Run()
+	if err != nil {
+		fmt.Printf("Failed to execute command %s: %s\n", cmd.String(), err.Error())
+		return "", err
+	}
+
+	return buf.String(), nil
 }

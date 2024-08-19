@@ -60,6 +60,10 @@ func TestCommand(t *testing.T) {
 			name:   "Test Command with new-line injection shell script",
 			cmdStr: "source /etc/local-storage-helper.sh\nenv",
 		},
+		{
+			name:   "Delete SMB User",
+			cmdStr: "smbpasswd -x testuser",
+		},
 	}
 
 	t.Run("TestExecuteScripts", func(t *testing.T) {
