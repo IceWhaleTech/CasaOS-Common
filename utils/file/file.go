@@ -13,7 +13,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
 	"github.com/mholt/archiver/v3"
+	"go.uber.org/zap"
 )
 
 // GetSize get the file size
@@ -400,6 +402,32 @@ func GetCompressionAlgorithm(t string) (string, archiver.Writer, error) {
 		return "", nil, errors.New("format not implemented")
 	}
 }
+func IsBrokenSymlink(path string) (bool, error) {
+	info, err := os.Lstat(path)
+	if err != nil {
+		return false, fmt.Errorf("error getting file info: %w", err)
+	}
+
+	// file is not a symlink
+	if info.Mode()&os.ModeSymlink == 0 {
+		return false, nil
+	}
+
+	target, err := os.Readlink(path)
+	if err != nil {
+		return false, fmt.Errorf("error reading symlink: %w", err)
+	}
+
+	_, err = os.Stat(target)
+	if os.IsNotExist(err) {
+		return true, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("error checking target: %w", err)
+	}
+
+	return false, nil
+}
 
 func AddFile(ar archiver.Writer, path, commonPath string) error {
 	info, err := os.Stat(path)
@@ -441,7 +469,17 @@ func AddFile(ar archiver.Writer, path, commonPath string) error {
 		}
 
 		for _, name := range names {
-			err = AddFile(ar, filepath.Join(path, name), commonPath)
+			filePath := filepath.Join(path, name)
+			isBroken, err := IsBrokenSymlink(filePath)
+			if err != nil {
+				logger.Error("Failed to check symlink", zap.Any("name", filePath), zap.Error(err))
+				continue
+			}
+			if isBroken {
+				continue
+			}
+
+			err = AddFile(ar, filePath, commonPath)
 			if err != nil {
 				return err
 			}
