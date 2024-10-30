@@ -94,11 +94,11 @@ type ModuleUIFormalityProperties struct {
 	Width        *string `json:"width,omitempty"`
 }
 
-// RemoteModule defines model for remote_module.
+// RemoteModule repo and url must have at least one
 type RemoteModule struct {
-	Name  string `json:"name"`
-	Repo  string `json:"repo"`
-	Title string `json:"title"`
+	Name  string  `json:"name"`
+	Repo  *string `json:"repo,omitempty"`
+	Title string  `json:"title"`
 }
 
 // Name defines model for name.
@@ -170,6 +170,9 @@ type ModuleInstallJSONRequestBody = ModuleId
 
 // ModuleStartStopJSONRequestBody defines body for ModuleStartStop for application/json ContentType.
 type ModuleStartStopJSONRequestBody ModuleStartStopJSONBody
+
+// ModuleInstallAsyncJSONRequestBody defines body for ModuleInstallAsync for application/json ContentType.
+type ModuleInstallAsyncJSONRequestBody = ModuleId
 
 // RequestEditorFn  is the function signature for the RequestEditor callback function
 type RequestEditorFn func(ctx context.Context, req *http.Request) error
@@ -270,6 +273,11 @@ type ClientInterface interface {
 	ModuleStartStopWithBody(ctx context.Context, name Name, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	ModuleStartStop(ctx context.Context, name Name, body ModuleStartStopJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ModuleInstallAsyncWithBody request with any body
+	ModuleInstallAsyncWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	ModuleInstallAsync(ctx context.Context, body ModuleInstallAsyncJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 }
 
 func (c *Client) ModuleUninstallWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -382,6 +390,30 @@ func (c *Client) ModuleStartStopWithBody(ctx context.Context, name Name, content
 
 func (c *Client) ModuleStartStop(ctx context.Context, name Name, body ModuleStartStopJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewModuleStartStopRequest(c.Server, name, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ModuleInstallAsyncWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewModuleInstallAsyncRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ModuleInstallAsync(ctx context.Context, body ModuleInstallAsyncJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewModuleInstallAsyncRequest(c.Server, body)
 	if err != nil {
 		return nil, err
 	}
@@ -634,6 +666,46 @@ func NewModuleStartStopRequestWithBody(server string, name Name, contentType str
 	return req, nil
 }
 
+// NewModuleInstallAsyncRequest calls the generic ModuleInstallAsync builder with application/json body
+func NewModuleInstallAsyncRequest(server string, body ModuleInstallAsyncJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewModuleInstallAsyncRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewModuleInstallAsyncRequestWithBody generates requests for ModuleInstallAsync with any type of body
+func NewModuleInstallAsyncRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/web/management/modules")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 func (c *Client) applyEditors(ctx context.Context, req *http.Request, additionalEditors []RequestEditorFn) error {
 	for _, r := range c.RequestEditors {
 		if err := r(ctx, req); err != nil {
@@ -703,6 +775,11 @@ type ClientWithResponsesInterface interface {
 	ModuleStartStopWithBodyWithResponse(ctx context.Context, name Name, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ModuleStartStopResponse, error)
 
 	ModuleStartStopWithResponse(ctx context.Context, name Name, body ModuleStartStopJSONRequestBody, reqEditors ...RequestEditorFn) (*ModuleStartStopResponse, error)
+
+	// ModuleInstallAsyncWithBodyWithResponse request with any body
+	ModuleInstallAsyncWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ModuleInstallAsyncResponse, error)
+
+	ModuleInstallAsyncWithResponse(ctx context.Context, body ModuleInstallAsyncJSONRequestBody, reqEditors ...RequestEditorFn) (*ModuleInstallAsyncResponse, error)
 }
 
 type ModuleUninstallResponse struct {
@@ -866,6 +943,29 @@ func (r ModuleStartStopResponse) StatusCode() int {
 	return 0
 }
 
+type ModuleInstallAsyncResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *ModuleInstallOk
+	JSON500      *ResponseInternalServerError
+}
+
+// Status returns HTTPResponse.Status
+func (r ModuleInstallAsyncResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ModuleInstallAsyncResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 // ModuleUninstallWithBodyWithResponse request with arbitrary body returning *ModuleUninstallResponse
 func (c *ClientWithResponses) ModuleUninstallWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ModuleUninstallResponse, error) {
 	rsp, err := c.ModuleUninstallWithBody(ctx, contentType, body, reqEditors...)
@@ -951,6 +1051,23 @@ func (c *ClientWithResponses) ModuleStartStopWithResponse(ctx context.Context, n
 		return nil, err
 	}
 	return ParseModuleStartStopResponse(rsp)
+}
+
+// ModuleInstallAsyncWithBodyWithResponse request with arbitrary body returning *ModuleInstallAsyncResponse
+func (c *ClientWithResponses) ModuleInstallAsyncWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ModuleInstallAsyncResponse, error) {
+	rsp, err := c.ModuleInstallAsyncWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseModuleInstallAsyncResponse(rsp)
+}
+
+func (c *ClientWithResponses) ModuleInstallAsyncWithResponse(ctx context.Context, body ModuleInstallAsyncJSONRequestBody, reqEditors ...RequestEditorFn) (*ModuleInstallAsyncResponse, error) {
+	rsp, err := c.ModuleInstallAsync(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseModuleInstallAsyncResponse(rsp)
 }
 
 // ParseModuleUninstallResponse parses an HTTP response from a ModuleUninstallWithResponse call
@@ -1171,6 +1288,39 @@ func ParseModuleStartStopResponse(rsp *http.Response) (*ModuleStartStopResponse,
 			return nil, err
 		}
 		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest ResponseInternalServerError
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseModuleInstallAsyncResponse parses an HTTP response from a ModuleInstallAsyncWithResponse call
+func ParseModuleInstallAsyncResponse(rsp *http.Response) (*ModuleInstallAsyncResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ModuleInstallAsyncResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ModuleInstallOk
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
 		var dest ResponseInternalServerError
