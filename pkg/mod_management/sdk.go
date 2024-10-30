@@ -63,7 +63,22 @@ func (c *ModManagementClient) InstallableModules() ([]mod_management.RemoteModul
 }
 
 func (c *ModManagementClient) InstallModule(name string) error {
-	resp, err := c.Client.InstallableModuleListWithResponse(context.Background())
+	resp, err := c.Client.ModuleInstallWithResponse(context.Background(), mod_management.ModuleInstallJSONRequestBody{
+		Name: name,
+	})
+	if err != nil {
+		return err
+	}
+
+	if resp.StatusCode() != http.StatusOK {
+		return fmt.Errorf("failed to get installable modules: %s", resp.Status())
+	}
+	return nil
+}
+func (c *ModManagementClient) InstallModuleAsync(name string) error {
+	resp, err := c.Client.ModuleInstallAsyncWithResponse(context.Background(), mod_management.ModuleInstallJSONRequestBody{
+		Name: name,
+	})
 	if err != nil {
 		return err
 	}
