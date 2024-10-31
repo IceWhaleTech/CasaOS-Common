@@ -132,7 +132,7 @@ func RequireModule(name string, runtimePath string) error {
 		return err
 	}
 
-	// 判断是否已经安装
+	// Check if the module is already installed
 	for _, module := range modules {
 		if module.Name == nil {
 			continue
@@ -142,7 +142,7 @@ func RequireModule(name string, runtimePath string) error {
 		}
 	}
 
-	// 安装
+	// Install module
 	err = client.InstallModule(name)
 	if err != nil {
 		return err
