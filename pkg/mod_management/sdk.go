@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/IceWhaleTech/CasaOS-Common/codegen/mod_management"
+	"github.com/IceWhaleTech/CasaOS-Common/external"
 )
 
 var ErrNoDataInResponse = fmt.Errorf("no data in response")
@@ -100,5 +102,51 @@ func (c *ModManagementClient) UninstallModule(name string) error {
 	if resp.StatusCode() != http.StatusOK {
 		return fmt.Errorf("failed to uninstall module: %s", resp.Status())
 	}
+	return nil
+}
+
+func RequireModule(name string, runtimePath string) error {
+	gatway, err := external.NewManagementService(runtimePath)
+	if err != nil {
+		return err
+	}
+
+	err, port := gatway.GetPort()
+	if err != nil {
+		return err
+	}
+	portInt, err := strconv.Atoi(port)
+	if err != nil {
+		return err
+	}
+
+	client, err := NewClient(ModManagementClientOpts{
+		Port: &portInt,
+	})
+	if err != nil {
+		return err
+	}
+
+	modules, err := client.InstalledModules()
+	if err != nil {
+		return err
+	}
+
+	// 判断是否已经安装
+	for _, module := range modules {
+		if module.Name == nil {
+			continue
+		}
+		if *module.Name == name {
+			return nil
+		}
+	}
+
+	// 安装
+	err = client.InstallModule(name)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
