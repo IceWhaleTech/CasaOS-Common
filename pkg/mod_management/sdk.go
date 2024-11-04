@@ -4,13 +4,17 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"strconv"
+	"strings"
 
 	"github.com/IceWhaleTech/CasaOS-Common/codegen/mod_management"
 	"github.com/IceWhaleTech/CasaOS-Common/external"
+	"github.com/tidwall/gjson"
 )
 
-var ErrNoDataInResponse = fmt.Errorf("no data in response")
+var (
+	ErrNoDataInResponse = fmt.Errorf("no data in response")
+	ErrModuleNoInStore  = fmt.Errorf("module not in store")
+)
 
 type ModManagementClient struct {
 	Client *mod_management.ClientWithResponses
@@ -73,7 +77,7 @@ func (c *ModManagementClient) InstallModule(name string) error {
 	}
 
 	if resp.StatusCode() != http.StatusOK {
-		return fmt.Errorf("failed to get installable modules: %s", resp.Status())
+		return fmt.Errorf("failed to install module: %s, %s", resp.Status(), string(resp.Body))
 	}
 	return nil
 }
@@ -86,7 +90,7 @@ func (c *ModManagementClient) InstallModuleAsync(name string) error {
 	}
 
 	if resp.StatusCode() != http.StatusOK {
-		return fmt.Errorf("failed to get installable modules: %s", resp.Status())
+		return fmt.Errorf("failed to install module: %s, %s", resp.Status(), string(resp.Body))
 	}
 	return nil
 }
@@ -111,17 +115,16 @@ func RequireModule(name string, runtimePath string) error {
 		return err
 	}
 
-	err, port := gatway.GetPort()
-	if err != nil {
-		return err
-	}
-	portInt, err := strconv.Atoi(port)
-	if err != nil {
-		return err
+	port := 80
+	if err, portStr := gatway.GetPort(); err == nil {
+		newPort := gjson.Get(portStr, "data").Int()
+		if newPort != 0 && int(newPort) != port {
+			port = int(newPort)
+		}
 	}
 
 	client, err := NewClient(ModManagementClientOpts{
-		Port: &portInt,
+		Port: &port,
 	})
 	if err != nil {
 		return err
@@ -145,6 +148,9 @@ func RequireModule(name string, runtimePath string) error {
 	// Install module
 	err = client.InstallModule(name)
 	if err != nil {
+		if strings.Contains(err.Error(), "module not exist") {
+			return ErrModuleNoInStore
+		}
 		return err
 	}
 

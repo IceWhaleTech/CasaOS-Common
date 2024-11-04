@@ -20,3 +20,19 @@ func TestInstallableModules(t *testing.T) {
 
 	t.Log(modules)
 }
+
+func TestInstallModule(t *testing.T) {
+	if os.Getenv("CI") != "" {
+		t.Skip()
+	}
+	err := modmanagement.RequireModule("doconverter", "/var/run/casaos")
+	assert.NoError(t, err)
+}
+
+func TestInstallNoExistModule(t *testing.T) {
+	if os.Getenv("CI") != "" {
+		t.Skip()
+	}
+	err := modmanagement.RequireModule("abc", "/var/run/casaos")
+	assert.ErrorIs(t, err, modmanagement.ErrModuleNoInStore)
+}
