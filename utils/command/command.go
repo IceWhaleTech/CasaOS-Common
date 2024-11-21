@@ -10,11 +10,13 @@ import (
 	"strings"
 
 	exec2 "github.com/IceWhaleTech/CasaOS-Common/utils/exec"
+	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
 )
 
 // Deprecated: This method is not safe, sould have ensure input.
 func OnlyExec(cmdStr string) (string, error) {
 	cmd := exec.Command("/bin/bash", "-c", cmdStr)
+	logger.InfoDebounced("Executing command: " + cmd.String())
 	buf, err := cmd.CombinedOutput()
 	return string(buf), err
 }
@@ -23,6 +25,8 @@ func ExecResultStr(cmdStr string) (string, error) {
 	cmds := strings.Fields(cmdStr)
 	cmd := exec2.Command(cmds[0], cmds[1:]...)
 
+	logger.InfoDebounced("Executing command: " + cmd.String())
+
 	output, err := cmd.CombinedOutput()
 	return string(output), err
 }
@@ -30,6 +34,8 @@ func ExecResultStr(cmdStr string) (string, error) {
 func ExecResultStrArray(cmdStr string) ([]string, error) {
 	cmds := strings.Fields(cmdStr)
 	cmd := exec.Command(cmds[0], cmds[1:]...)
+
+	logger.InfoDebounced("Executing command: " + cmd.String())
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -93,6 +99,8 @@ func ExecuteScripts(scriptDirectory string) error {
 
 func ExecStdin(stdinStr string, name string, args ...string) (string, error) {
 	cmd := exec.Command(name, args...)
+
+	logger.InfoDebounced("Executing command: " + cmd.String())
 
 	var buf bytes.Buffer
 	cmd.Stdout = &buf
