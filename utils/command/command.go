@@ -100,7 +100,7 @@ func ExecuteScripts(scriptDirectory string) error {
 func ExecStdin(stdinStr string, name string, args ...string) (string, error) {
 	cmd := exec.Command(name, args...)
 
-	logger.InfoDebounced("Executing command: " + cmd.String())
+	logger.DebouncedInfo("Executing command: " + cmd.String())
 
 	var buf bytes.Buffer
 	cmd.Stdout = &buf
