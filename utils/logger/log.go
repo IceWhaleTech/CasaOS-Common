@@ -6,6 +6,8 @@ import (
 	"path"
 	"path/filepath"
 	"runtime"
+	"sync"
+	"time"
 
 	"github.com/samber/lo"
 	"go.uber.org/zap"
@@ -14,6 +16,87 @@ import (
 )
 
 var loggers *zap.Logger
+
+var (
+	infoDebouncer  *debouncer
+	errorDebouncer *debouncer
+)
+
+// Add debouncer type
+type debouncer struct {
+	mu       sync.Mutex
+	timer    *time.Timer
+	interval time.Duration
+	messages []logMessage
+}
+
+type logMessage struct {
+	msg    string
+	fields []zap.Field
+}
+
+func newDebouncer(interval time.Duration) *debouncer {
+	return &debouncer{
+		interval: interval,
+	}
+}
+
+// Add these new functions
+func InfoDebounced(message string, fields ...zap.Field) {
+	if infoDebouncer == nil {
+		infoDebouncer = newDebouncer(5 * time.Second)
+	}
+
+	callerFields := getCallerInfoForLog()
+	fields = append(fields, callerFields...)
+
+	infoDebouncer.mu.Lock()
+	defer infoDebouncer.mu.Unlock()
+
+	infoDebouncer.messages = append(infoDebouncer.messages, logMessage{msg: message, fields: fields})
+
+	if infoDebouncer.timer != nil {
+		infoDebouncer.timer.Stop()
+	}
+
+	infoDebouncer.timer = time.AfterFunc(infoDebouncer.interval, func() {
+		infoDebouncer.mu.Lock()
+		defer infoDebouncer.mu.Unlock()
+
+		for _, msg := range infoDebouncer.messages {
+			loggers.Info(msg.msg, msg.fields...)
+		}
+		infoDebouncer.messages = nil
+	})
+}
+
+func ErrorDebounced(message string, fields ...zap.Field) {
+	if errorDebouncer == nil {
+		errorDebouncer = newDebouncer(5 * time.Second)
+	}
+
+	callerFields := getCallerInfoForLog()
+	fields = append(fields, callerFields...)
+
+	errorDebouncer.mu.Lock()
+	defer errorDebouncer.mu.Unlock()
+
+	errorDebouncer.messages = append(errorDebouncer.messages, logMessage{msg: message, fields: fields})
+
+	if errorDebouncer.timer != nil {
+		errorDebouncer.timer.Stop()
+	}
+
+	errorDebouncer.timer = time.AfterFunc(errorDebouncer.interval, func() {
+		errorDebouncer.mu.Lock()
+		defer errorDebouncer.mu.Unlock()
+
+		for _, msg := range errorDebouncer.messages {
+			loggers.Error(msg.msg, msg.fields...)
+		}
+		errorDebouncer.messages = nil
+	})
+}
 
 func getFileLogWriter(logPath string, logFileName string, logFileExt string) (writeSyncer zapcore.WriteSyncer) {
 	// 使用 lumberjack 实现 log rotate
