@@ -6,8 +6,6 @@ import (
 	"path"
 	"path/filepath"
 	"runtime"
-	"sync"
-	"time"
 
 	"github.com/samber/lo"
 	"go.uber.org/zap"
@@ -16,71 +14,6 @@ import (
 )
 
 var loggers *zap.Logger
-
-type debouncerLog struct {
-	lastLogTime time.Time
-	logCount    int
-}
-
-var (
-	lastLogTime           time.Time
-	logCount              int
-	logFrequencyMutex     sync.Mutex
-	logFrequencyThreshold = 5
-	timeWindow            = time.Minute
-	errorLogs             = make(map[string]*debouncerLog)
-	infoLogs              = make(map[string]*debouncerLog)
-)
-
-func DebouncedError(message string, err error) {
-	logFrequencyMutex.Lock()
-	defer logFrequencyMutex.Unlock()
-
-	now := time.Now()
-	if logInfo, exist := errorLogs[message]; exist {
-		if now.Sub(logInfo.lastLogTime) > timeWindow {
-			logInfo.logCount = 0
-			logInfo.lastLogTime = now
-		}
-
-		if logInfo.logCount < logFrequencyThreshold {
-			logInfo.logCount++
-		} else {
-			return
-		}
-	} else {
-		errorLogs[message] = &debouncerLog{
-			lastLogTime: now,
-			logCount:    1,
-		}
-	}
-	Error(message, zap.Error(err))
-}
-
-func DebouncedInfo(message string) {
-	logFrequencyMutex.Lock()
-	defer logFrequencyMutex.Unlock()
-
-	now := time.Now()
-	if logInfo, exist := infoLogs[message]; exist {
-		if now.Sub(logInfo.lastLogTime) > timeWindow {
-			logInfo.logCount = 0
-			logInfo.lastLogTime = now
-		}
-
-		if logInfo.logCount < logFrequencyThreshold {
-			logInfo.logCount++
-		} else {
-			return
-		}
-	} else {
-		infoLogs[message] = &debouncerLog{
-			lastLogTime: now,
-			logCount:    1,
-		}
-	}
-	Info(message)
-}
 
 func getFileLogWriter(logPath string, logFileName string, logFileExt string) (writeSyncer zapcore.WriteSyncer) {
 	// 使用 lumberjack 实现 log rotate
