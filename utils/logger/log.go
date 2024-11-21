@@ -17,85 +17,69 @@ import (
 
 var loggers *zap.Logger
 
+type debouncerLog struct {
+	lastLogTime time.Time
+	logCount    int
+}
+
 var (
-	infoDebouncer  *debouncer
-	errorDebouncer *debouncer
+	lastLogTime           time.Time
+	logCount              int
+	logFrequencyMutex     sync.Mutex
+	logFrequencyThreshold = 5
+	timeWindow            = time.Minute
+	errorLogs             = make(map[string]*debouncerLog)
+	infoLogs              = make(map[string]*debouncerLog)
 )
 
-// Add debouncer type
-type debouncer struct {
-	mu       sync.Mutex
-	timer    *time.Timer
-	interval time.Duration
-	messages []logMessage
-}
+func DebouncedError(message string, err error) {
+	logFrequencyMutex.Lock()
+	defer logFrequencyMutex.Unlock()
 
-type logMessage struct {
-	msg    string
-	fields []zap.Field
-}
-
-func newDebouncer(interval time.Duration) *debouncer {
-	return &debouncer{
-		interval: interval,
-	}
-}
-
-// Add these new functions
-func InfoDebounced(message string, fields ...zap.Field) {
-	if infoDebouncer == nil {
-		infoDebouncer = newDebouncer(5 * time.Second)
-	}
-
-	callerFields := getCallerInfoForLog()
-	fields = append(fields, callerFields...)
-
-	infoDebouncer.mu.Lock()
-	defer infoDebouncer.mu.Unlock()
-
-	infoDebouncer.messages = append(infoDebouncer.messages, logMessage{msg: message, fields: fields})
-
-	if infoDebouncer.timer != nil {
-		infoDebouncer.timer.Stop()
-	}
-
-	infoDebouncer.timer = time.AfterFunc(infoDebouncer.interval, func() {
-		infoDebouncer.mu.Lock()
-		defer infoDebouncer.mu.Unlock()
-
-		for _, msg := range infoDebouncer.messages {
-			loggers.Info(msg.msg, msg.fields...)
+	now := time.Now()
+	if logInfo, exist := errorLogs[message]; exist {
+		if now.Sub(logInfo.lastLogTime) > timeWindow {
+			logInfo.logCount = 0
+			logInfo.lastLogTime = now
 		}
-		infoDebouncer.messages = nil
-	})
+
+		if logInfo.logCount < logFrequencyThreshold {
+			logInfo.logCount++
+		} else {
+			return
+		}
+	} else {
+		errorLogs[message] = &debouncerLog{
+			lastLogTime: now,
+			logCount:    1,
+		}
+	}
+	Error(message, zap.Error(err))
 }
 
-func ErrorDebounced(message string, fields ...zap.Field) {
-	if errorDebouncer == nil {
-		errorDebouncer = newDebouncer(5 * time.Second)
-	}
+func DebouncedInfo(message string) {
+	logFrequencyMutex.Lock()
+	defer logFrequencyMutex.Unlock()
 
-	callerFields := getCallerInfoForLog()
-	fields = append(fields, callerFields...)
-
-	errorDebouncer.mu.Lock()
-	defer errorDebouncer.mu.Unlock()
-
-	errorDebouncer.messages = append(errorDebouncer.messages, logMessage{msg: message, fields: fields})
-
-	if errorDebouncer.timer != nil {
-		errorDebouncer.timer.Stop()
-	}
-
-	errorDebouncer.timer = time.AfterFunc(errorDebouncer.interval, func() {
-		errorDebouncer.mu.Lock()
-		defer errorDebouncer.mu.Unlock()
-
-		for _, msg := range errorDebouncer.messages {
-			loggers.Error(msg.msg, msg.fields...)
+	now := time.Now()
+	if logInfo, exist := infoLogs[message]; exist {
+		if now.Sub(logInfo.lastLogTime) > timeWindow {
+			logInfo.logCount = 0
+			logInfo.lastLogTime = now
 		}
-		errorDebouncer.messages = nil
-	})
+
+		if logInfo.logCount < logFrequencyThreshold {
+			logInfo.logCount++
+		} else {
+			return
+		}
+	} else {
+		infoLogs[message] = &debouncerLog{
+			lastLogTime: now,
+			logCount:    1,
+		}
+	}
+	Info(message)
 }
 
 func getFileLogWriter(logPath string, logFileName string, logFileExt string) (writeSyncer zapcore.WriteSyncer) {
