@@ -291,6 +291,8 @@ func RestartService(name string) error {
 		return err
 	}
 
+	_ = ReloadDaemon()
+
 	return nil
 }
 
