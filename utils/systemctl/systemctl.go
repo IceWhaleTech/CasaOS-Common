@@ -263,6 +263,37 @@ func StopService(name string) error {
 	return nil
 }
 
+func RestartService(name string) error {
+	// connect to systemd
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	conn, err := dbus.NewSystemdConnectionContext(ctx)
+	if err != nil {
+		return err
+	}
+
+	defer conn.Close()
+
+	ch := make(chan string)
+	_, err = conn.ReloadOrRestartUnitContext(ctx, name, "replace", ch)
+	if err != nil {
+		return err
+	}
+
+	result := <-ch
+	if result != ResultDone {
+		err, ok := ErrorMap[result]
+		if !ok {
+			return ErrorUnknown
+		}
+
+		return err
+	}
+
+	return nil
+}
+
 func ReloadDaemon() error {
 	// connect to systemd
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
