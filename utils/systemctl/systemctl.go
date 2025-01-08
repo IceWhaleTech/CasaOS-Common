@@ -50,9 +50,14 @@ type Service struct {
 	Running bool
 }
 
-func ListServices(pattern string) ([]Service, error) {
+func ListServices(pattern string, wait ...time.Duration) ([]Service, error) {
+	timeout := 30 * time.Second
+	if len(wait) > 0 {
+		timeout = wait[0]
+	}
+
 	// connect to systemd
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	conn, err := dbus.NewSystemdConnectionContext(ctx)
@@ -95,9 +100,14 @@ func ListServices(pattern string) ([]Service, error) {
 	return services, nil
 }
 
-func IsServiceEnabled(name string) (bool, error) {
+func IsServiceEnabled(name string, wait ...time.Duration) (bool, error) {
+	timeout := 30 * time.Second
+	if len(wait) > 0 {
+		timeout = wait[0]
+	}
+
 	// connect to systemd
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	conn, err := dbus.NewSystemdConnectionContext(ctx)
@@ -119,9 +129,14 @@ func IsServiceEnabled(name string) (bool, error) {
 	return false, nil
 }
 
-func IsServiceRunning(name string) (bool, error) {
+func IsServiceRunning(name string, wait ...time.Duration) (bool, error) {
+	timeout := 30 * time.Second
+	if len(wait) > 0 {
+		timeout = wait[0]
+	}
+
 	// connect to systemd
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	conn, err := dbus.NewSystemdConnectionContext(ctx)
@@ -139,9 +154,14 @@ func IsServiceRunning(name string) (bool, error) {
 	return property.Value.Value() == "active", nil
 }
 
-func EnableService(nameOrPath string) error {
+func EnableService(nameOrPath string, wait ...time.Duration) error {
+	timeout := 30 * time.Second
+	if len(wait) > 0 {
+		timeout = wait[0]
+	}
+
 	// connect to systemd
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	conn, err := dbus.NewSystemdConnectionContext(ctx)
@@ -171,9 +191,14 @@ func EnableService(nameOrPath string) error {
 	return nil
 }
 
-func DisableService(name string) error {
+func DisableService(name string, wait ...time.Duration) error {
+	timeout := 30 * time.Second
+	if len(wait) > 0 {
+		timeout = wait[0]
+	}
+
 	// connect to systemd
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	conn, err := dbus.NewSystemdConnectionContext(ctx)
@@ -201,9 +226,14 @@ func DisableService(name string) error {
 	return nil
 }
 
-func StartService(name string) error {
+func StartService(name string, wait ...time.Duration) error {
+	timeout := 30 * time.Second
+	if len(wait) > 0 {
+		timeout = wait[0]
+	}
+
 	// connect to systemd
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	conn, err := dbus.NewSystemdConnectionContext(ctx)
@@ -232,9 +262,14 @@ func StartService(name string) error {
 	return nil
 }
 
-func StopService(name string) error {
+func StopService(name string, wait ...time.Duration) error {
+	timeout := 30 * time.Second
+	if len(wait) > 0 {
+		timeout = wait[0]
+	}
+
 	// connect to systemd
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	conn, err := dbus.NewSystemdConnectionContext(ctx)
@@ -263,9 +298,14 @@ func StopService(name string) error {
 	return nil
 }
 
-func RestartService(name string) error {
+func RestartService(name string, wait ...time.Duration) error {
+	timeout := 30 * time.Second
+	if len(wait) > 0 {
+		timeout = wait[0]
+	}
+
 	// connect to systemd
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	conn, err := dbus.NewSystemdConnectionContext(ctx)
@@ -296,9 +336,14 @@ func RestartService(name string) error {
 	return nil
 }
 
-func ReloadDaemon() error {
+func ReloadDaemon(wait ...time.Duration) error {
+	timeout := 30 * time.Second
+	if len(wait) > 0 {
+		timeout = wait[0]
+	}
+
 	// connect to systemd
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	conn, err := dbus.NewSystemdConnectionContext(ctx)
