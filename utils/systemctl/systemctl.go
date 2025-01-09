@@ -298,7 +298,7 @@ func StopService(name string, wait ...time.Duration) error {
 	return nil
 }
 
-func RestartService(name string, wait ...time.Duration) error {
+func RestartService(name string, force bool, wait ...time.Duration) error {
 	timeout := 30 * time.Second
 	if len(wait) > 0 {
 		timeout = wait[0]
@@ -316,9 +316,17 @@ func RestartService(name string, wait ...time.Duration) error {
 	defer conn.Close()
 
 	ch := make(chan string)
-	_, err = conn.ReloadOrRestartUnitContext(ctx, name, "replace", ch)
-	if err != nil {
-		return err
+
+	if force {
+		_, err = conn.RestartUnitContext(ctx, name, "replace", ch)
+		if err != nil {
+			return err
+		}
+	} else {
+		_, err = conn.ReloadOrRestartUnitContext(ctx, name, "replace", ch)
+		if err != nil {
+			return err
+		}
 	}
 
 	result := <-ch
