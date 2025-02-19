@@ -6,6 +6,7 @@ import (
 	"path"
 	"path/filepath"
 	"runtime"
+	"sync"
 
 	"github.com/samber/lo"
 	"go.uber.org/zap"
@@ -14,6 +15,7 @@ import (
 )
 
 var loggers *zap.Logger
+var once sync.Once
 
 func getFileLogWriter(logPath string, logFileName string, logFileExt string) (writeSyncer zapcore.WriteSyncer) {
 	// 使用 lumberjack 实现 log rotate
@@ -37,14 +39,17 @@ func LogInitWithWriterSyncers(syncers ...zapcore.WriteSyncer) {
 				func(syncer zapcore.WriteSyncer, index int) zapcore.Core {
 					return zapcore.NewCore(encoder, syncer, zapcore.InfoLevel)
 				})...,
-		))
+		),
+	)
 }
 
 // for unit tests
 func LogInitConsoleOnly() {
-	LogInitWithWriterSyncers(
-		zapcore.AddSync(os.Stdout),
-	)
+	once.Do(func() {
+		LogInitWithWriterSyncers(
+			zapcore.AddSync(os.Stdout),
+		)
+	})
 }
 
 func LogInit(logPath string, logFileName string, logFileExt string) {
