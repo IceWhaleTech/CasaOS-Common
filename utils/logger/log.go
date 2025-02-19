@@ -31,25 +31,25 @@ func getFileLogWriter(logPath string, logFileName string, logFileExt string) (wr
 }
 
 func LogInitWithWriterSyncers(syncers ...zapcore.WriteSyncer) {
-	once.Do(func() {
-		encoder := getEncoder()
-		loggers = zap.New(
-			zapcore.NewTee(
-				lo.Map(
-					syncers,
-					func(syncer zapcore.WriteSyncer, index int) zapcore.Core {
-						return zapcore.NewCore(encoder, syncer, zapcore.InfoLevel)
-					})...,
-			),
-		)
-	})
+	encoder := getEncoder()
+	loggers = zap.New(
+		zapcore.NewTee(
+			lo.Map(
+				syncers,
+				func(syncer zapcore.WriteSyncer, index int) zapcore.Core {
+					return zapcore.NewCore(encoder, syncer, zapcore.InfoLevel)
+				})...,
+		),
+	)
 }
 
 // for unit tests
 func LogInitConsoleOnly() {
-	LogInitWithWriterSyncers(
-		zapcore.AddSync(os.Stdout),
-	)
+	once.Do(func() {
+		LogInitWithWriterSyncers(
+			zapcore.AddSync(os.Stdout),
+		)
+	})
 }
 
 func LogInit(logPath string, logFileName string, logFileExt string) {
