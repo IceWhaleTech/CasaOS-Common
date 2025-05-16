@@ -116,6 +116,14 @@ func (d *DelayedExecutor) Do(key string, execFunc func()) {
 	}
 }
 
+func (d *DelayedExecutor) Cancel(key string) {
+	if state, ok := d.States.LoadAndDelete(key); ok {
+		if state.(*DelayedState).Timer != nil {
+			state.(*DelayedState).Timer.Stop()
+		}
+	}
+}
+
 func (d *DelayedExecutor) trigger(key string, execFunc func()) {
 	_, ok := d.States.LoadAndDelete(key)
 	if !ok {
