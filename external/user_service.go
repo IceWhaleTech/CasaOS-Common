@@ -111,7 +111,7 @@ func ParseToken(runtimePath, token string) (*ParsedToken, error) {
 
 	if cachedEntry, found := parseTokenCache.Get(cacheKey); found {
 		token := cachedEntry.(*ParsedToken)
-		if token.ExpiresAt > time.Now().Unix() {
+		if !token.isExpired() {
 			return token, nil
 		}
 	}
@@ -156,7 +156,15 @@ func ParseToken(runtimePath, token string) (*ParsedToken, error) {
 		return nil, errors.New("token is invalid")
 	}
 
+	if parsedResp.Data.isExpired() {
+		return nil, errors.New("token is expired")
+	}
+
 	parseTokenCache.Put(cacheKey, &parsedResp.Data)
 
 	return &parsedResp.Data, nil
+}
+
+func (p *ParsedToken) isExpired() bool {
+	return p.ExpiresAt <= time.Now().Unix()
 }
