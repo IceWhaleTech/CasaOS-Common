@@ -126,7 +126,9 @@ func ParseToken(runtimePath, token string) (*ParsedToken, error) {
 		return nil, err
 	}
 
-	requestBody, err := json.Marshal(struct{ Token string }{Token: normalizedToken})
+	requestBody, err := json.Marshal(struct {
+		Token string `json:"token"`
+	}{Token: normalizedToken})
 	if err != nil {
 		return nil, err
 	}
