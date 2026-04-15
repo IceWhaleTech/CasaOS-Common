@@ -5,15 +5,19 @@ import (
 	"crypto/elliptic"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"math/big"
 	"net/http"
 	"net/url"
 	"path/filepath"
+	"strings"
 	"time"
 
+	http2 "github.com/IceWhaleTech/CasaOS-Common/utils/http"
 	"github.com/IceWhaleTech/CasaOS-Common/utils/jwt"
+	"github.com/orca-zhang/ecache"
 )
 
 const (
@@ -23,7 +27,16 @@ const (
 var (
 	cachedPublicKey *ecdsa.PublicKey
 	lastUpdate      time.Time
+	parseTokenCache = ecache.NewLRUCache(8, 32, 30*time.Second)
 )
+
+type ParsedToken struct {
+	Valid     bool   `json:"valid"`
+	ExpiresAt int64  `json:"expires_at"`
+	Username  string `json:"username"`
+	Role      string `json:"role"`
+	ID        int    `json:"id"`
+}
 
 func GetPublicKey(runtimePath string) (*ecdsa.PublicKey, error) {
 	if cachedPublicKey != nil && time.Since(lastUpdate) < 10*time.Second {
@@ -86,4 +99,62 @@ func GetPublicKey(runtimePath string) (*ecdsa.PublicKey, error) {
 	lastUpdate = time.Now()
 
 	return cachedPublicKey, nil
+}
+
+func ParseToken(runtimePath, token string) (*ParsedToken, error) {
+	normalizedToken := strings.TrimSpace(token)
+	if normalizedToken == "" {
+		return nil, errors.New("token is empty")
+	}
+
+	cacheKey := normalizedToken
+
+	if cachedEntry, found := parseTokenCache.Get(cacheKey); found {
+		token := cachedEntry.(*ParsedToken)
+		if token.ExpiresAt > time.Now().Unix() {
+			return token, nil
+		}
+	}
+
+	address, err := getAddress(filepath.Join(runtimePath, UserServiceAddressFilename))
+	if err != nil {
+		return nil, err
+	}
+
+	parseTokenURL, err := url.JoinPath(address, "/v1/users/parse-token")
+	if err != nil {
+		return nil, err
+	}
+
+	requestBody, err := json.Marshal(struct{ Token string }{Token: normalizedToken})
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := http2.Post(parseTokenURL, requestBody, 30*time.Second)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse token: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to parse token: received status code %d", resp.StatusCode)
+	}
+
+	var parsedResp struct {
+		Success int         `json:"success"`
+		Message string      `json:"message"`
+		Data    ParsedToken `json:"data"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&parsedResp); err != nil {
+		return nil, fmt.Errorf("failed to decode parse token response: %w", err)
+	}
+
+	if !parsedResp.Data.Valid {
+		return nil, errors.New("token is invalid")
+	}
+
+	parseTokenCache.Put(cacheKey, &parsedResp.Data)
+
+	return &parsedResp.Data, nil
 }
