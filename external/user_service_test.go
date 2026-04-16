@@ -2,6 +2,7 @@ package external
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -14,7 +15,8 @@ import (
 
 func resetParseTokenCacheForTest(t *testing.T) {
 	t.Helper()
-	parseTokenCache = ecache.NewLRUCache(8, 32, 30*time.Second)
+	validParseTokenCache = ecache.NewLRUCache(2, 8, time.Minute)
+	invalidParseTokenCache = ecache.NewLRUCache(2, 16, time.Minute)
 }
 
 func writeUserServiceAddressFile(t *testing.T, runtimePath, address string) {
@@ -89,7 +91,7 @@ func TestParseTokenDoesNotReturnExpiredCachedToken(t *testing.T) {
 	writeUserServiceAddressFile(t, runtimePath, server.URL)
 
 	const token = "cached-token"
-	parseTokenCache.Put(token, &ParsedToken{
+	validParseTokenCache.Put(token, &ParsedToken{
 		Valid:     true,
 		ExpiresAt: time.Now().Add(-time.Minute).Unix(),
 		Username:  "stale",
@@ -98,14 +100,88 @@ func TestParseTokenDoesNotReturnExpiredCachedToken(t *testing.T) {
 	})
 
 	parsed, err := ParseToken(runtimePath, token)
-	if err != nil {
-		t.Fatalf("ParseToken returned error: %v", err)
+	if !errors.Is(err, errTokenExpired) {
+		t.Fatalf("expected errTokenExpired, got %v", err)
 	}
-	if parsed == nil {
-		t.Fatal("expected parsed token, got nil")
+	if parsed != nil {
+		t.Fatalf("expected nil parsed token, got %+v", parsed)
 	}
-	if parsed.Username != "bob" {
-		t.Fatalf("expected refreshed token from service, got %+v", parsed)
+	if requestCount != 0 {
+		t.Fatalf("expected 0 service requests, got %d", requestCount)
+	}
+}
+
+func TestParseTokenDoesNotFallbackForInvalidCachedSentinel(t *testing.T) {
+	resetParseTokenCacheForTest(t)
+
+	var requestCount int
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestCount++
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	runtimePath := t.TempDir()
+	writeUserServiceAddressFile(t, runtimePath, server.URL)
+
+	const token = "invalid-token"
+	invalidParseTokenCache.Put(token, tokenCacheSentinelInvalid)
+
+	parsed, err := ParseToken(runtimePath, token)
+	if !errors.Is(err, errTokenInvalid) {
+		t.Fatalf("expected errTokenInvalid, got %v", err)
+	}
+	if parsed != nil {
+		t.Fatalf("expected nil parsed token, got %+v", parsed)
+	}
+	if requestCount != 0 {
+		t.Fatalf("expected 0 service requests, got %d", requestCount)
+	}
+}
+
+func TestParseTokenCachesInvalidTokenSentinel(t *testing.T) {
+	resetParseTokenCacheForTest(t)
+
+	var requestCount int
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestCount++
+
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(map[string]any{
+			"success": 1,
+			"message": "ok",
+			"data": map[string]any{
+				"valid":      false,
+				"expires_at": time.Now().Add(time.Hour).Unix(),
+				"username":   "",
+				"role":       "",
+				"id":         0,
+			},
+		}); err != nil {
+			t.Fatalf("encode response: %v", err)
+		}
+	}))
+	defer server.Close()
+
+	runtimePath := t.TempDir()
+	writeUserServiceAddressFile(t, runtimePath, server.URL)
+
+	const token = "invalid-from-service"
+
+	parsed, err := ParseToken(runtimePath, token)
+	if !errors.Is(err, errTokenInvalid) {
+		t.Fatalf("expected errTokenInvalid, got %v", err)
+	}
+	if parsed != nil {
+		t.Fatalf("expected nil parsed token, got %+v", parsed)
+	}
+
+	parsed, err = ParseToken(runtimePath, token)
+	if !errors.Is(err, errTokenInvalid) {
+		t.Fatalf("expected cached errTokenInvalid, got %v", err)
+	}
+	if parsed != nil {
+		t.Fatalf("expected nil parsed token on cache hit, got %+v", parsed)
 	}
 	if requestCount != 1 {
 		t.Fatalf("expected 1 service request, got %d", requestCount)

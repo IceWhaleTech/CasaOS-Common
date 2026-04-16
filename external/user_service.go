@@ -25,9 +25,22 @@ const (
 )
 
 var (
-	cachedPublicKey *ecdsa.PublicKey
-	lastUpdate      time.Time
-	parseTokenCache = ecache.NewLRUCache(8, 32, 30*time.Second)
+	cachedPublicKey        *ecdsa.PublicKey
+	lastUpdate             time.Time
+	validParseTokenCache   = ecache.NewLRUCache(2, 8, time.Minute)
+	invalidParseTokenCache = ecache.NewLRUCache(2, 16, time.Minute)
+)
+
+var (
+	errTokenInvalid = errors.New("token is invalid")
+	errTokenExpired = errors.New("token is expired")
+)
+
+type tokenCacheSentinel uint8
+
+const (
+	tokenCacheSentinelInvalid tokenCacheSentinel = iota + 1
+	tokenCacheSentinelExpired
 )
 
 type ParsedToken struct {
@@ -109,11 +122,24 @@ func ParseToken(runtimePath, token string) (*ParsedToken, error) {
 
 	cacheKey := normalizedToken
 
-	if cachedEntry, found := parseTokenCache.Get(cacheKey); found {
-		token := cachedEntry.(*ParsedToken)
-		if !token.isExpired() {
-			return token, nil
+	if cachedEntry, found := invalidParseTokenCache.Get(cacheKey); found {
+		switch cachedEntry.(tokenCacheSentinel) {
+		case tokenCacheSentinelInvalid:
+			return nil, errTokenInvalid
+		case tokenCacheSentinelExpired:
+			return nil, errTokenExpired
 		}
+	}
+
+	if cachedEntry, found := validParseTokenCache.Get(cacheKey); found {
+		token := cachedEntry.(*ParsedToken)
+		if token.isExpired() {
+			validParseTokenCache.Del(cacheKey)
+			invalidParseTokenCache.Put(cacheKey, tokenCacheSentinelExpired)
+			return nil, errTokenExpired
+		}
+
+		return token, nil
 	}
 
 	address, err := getAddress(filepath.Join(runtimePath, UserServiceAddressFilename))
@@ -153,14 +179,16 @@ func ParseToken(runtimePath, token string) (*ParsedToken, error) {
 	}
 
 	if !parsedResp.Data.Valid {
-		return nil, errors.New("token is invalid")
+		invalidParseTokenCache.Put(cacheKey, tokenCacheSentinelInvalid)
+		return nil, errTokenInvalid
 	}
 
 	if parsedResp.Data.isExpired() {
-		return nil, errors.New("token is expired")
+		invalidParseTokenCache.Put(cacheKey, tokenCacheSentinelExpired)
+		return nil, errTokenExpired
 	}
 
-	parseTokenCache.Put(cacheKey, &parsedResp.Data)
+	validParseTokenCache.Put(cacheKey, &parsedResp.Data)
 
 	return &parsedResp.Data, nil
 }
