@@ -65,40 +65,19 @@ func GetPublicKey(runtimePath string) (*ecdsa.PublicKey, error) {
 		return cachedPublicKey, nil
 	}
 
-	var resp *http.Response
-	address, err := readUserServiceAddress(userServiceAddressFile)
-	if err == nil {
-		jwksURL, err := url.JoinPath(address, jwt.JWKSPath)
-		if err != nil {
-			return nil, err
-		}
-
-		resp, err = http2.Get(jwksURL, 30*time.Second)
-		if err != nil {
-			return nil, fmt.Errorf("failed to fetch JWKS: %w", err)
-		}
-	} else if errors.Is(err, os.ErrNotExist) {
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
-
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, "http://unix/"+strings.TrimLeft(jwt.JWKSPath, "/"), nil)
-		if err != nil {
-			return nil, err
-		}
-
-		resp, err = (&http.Client{
-			Transport: &http.Transport{
-				DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
-					var dialer net.Dialer
-					return dialer.DialContext(ctx, "unix", gatewaySockFile)
-				},
-			},
-		}).Do(req)
-		if err != nil {
-			return nil, fmt.Errorf("failed to fetch JWKS: %w", err)
-		}
-	} else {
+	address, err := getAddress(filepath.Join(runtimePath, UserServiceAddressFilename))
+	if err != nil {
 		return nil, err
+	}
+
+	jwksURL, err := url.JoinPath(address, jwt.JWKSPath)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := http.Get(jwksURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch JWKS: %w", err)
 	}
 	defer resp.Body.Close()
 
