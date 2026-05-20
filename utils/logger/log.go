@@ -71,6 +71,12 @@ func Error(message string, fields ...zap.Field) {
 	loggers.Error(message, fields...)
 }
 
+func Warn(message string, fields ...zap.Field) {
+	callerFields := getCallerInfoForLog()
+	fields = append(fields, callerFields...)
+	loggers.Warn(message, fields...)
+}
+
 func getCallerInfoForLog() (callerFields []zap.Field) {
 	pc, file, line, ok := runtime.Caller(2) // 回溯两层，拿到写日志的调用方的函数信息
 	if !ok {
