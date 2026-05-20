@@ -27,3 +27,16 @@ func TestLogInitWithWriters(t *testing.T) {
 
 	assert.Contains(t, string(w.Output), msg)
 }
+
+func TestWarn(t *testing.T) {
+	w := &testWriter{}
+	logger.LogInitWithWriterSyncers(zapcore.AddSync(w))
+
+	msg := "warn test"
+
+	logger.Warn(msg)
+
+	output := string(w.Output)
+	assert.Contains(t, output, "warn")
+	assert.Contains(t, output, msg)
+}
