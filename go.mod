@@ -4,6 +4,7 @@ go 1.21
 
 require (
 	github.com/coreos/go-systemd/v22 v22.5.0
+	github.com/fsnotify/fsnotify v1.7.0
 	github.com/golang-jwt/jwt/v4 v4.5.0
 	github.com/google/safetext v0.0.0-20240104143208-7a7d9b3d812f
 	github.com/gorilla/websocket v1.5.0
