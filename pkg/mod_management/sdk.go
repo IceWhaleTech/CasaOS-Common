@@ -45,7 +45,7 @@ func (c *ModManagementClient) InstalledModules() ([]mod_management.Module, error
 		return nil, fmt.Errorf("failed to get installed modules: %s", resp.Status())
 	}
 
-	if resp.JSON200.Data == nil {
+	if resp.JSON200 == nil || resp.JSON200.Data == nil {
 		return []mod_management.Module{}, ErrNoDataInResponse
 	}
 	return *resp.JSON200.Data, nil
@@ -61,7 +61,7 @@ func (c *ModManagementClient) InstallableModules() ([]mod_management.RemoteModul
 		return nil, fmt.Errorf("failed to get installable modules: %s", resp.Status())
 	}
 
-	if resp.JSON200.Data == nil {
+	if resp.JSON200 == nil || resp.JSON200.Data == nil {
 		return []mod_management.RemoteModule{}, ErrNoDataInResponse
 	}
 

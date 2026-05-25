@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 
@@ -102,8 +103,7 @@ func TestParseTokenPrefersUserServiceAddressFile(t *testing.T) {
 func TestParseTokenFallsBackToGatewaySockWhenUserServiceAddressFileMissing(t *testing.T) {
 	resetParseTokenCacheForTest(t)
 
-	tempDir := t.TempDir()
-	sockPath := filepath.Join(tempDir, GatewaySockFilename)
+	sockPath := shortUnixSocketPathForTest(t)
 	gatewaySockFile = sockPath
 
 	listener, err := net.Listen("unix", sockPath)
@@ -152,4 +152,22 @@ func TestParseTokenFallsBackToGatewaySockWhenUserServiceAddressFileMissing(t *te
 	if parsed == nil || parsed.Username != "gateway" {
 		t.Fatalf("expected gateway response, got %+v", parsed)
 	}
+}
+
+func shortUnixSocketPathForTest(t *testing.T) string {
+	t.Helper()
+
+	if runtime.GOOS == "windows" {
+		t.Skip("unix sockets are not supported on windows")
+	}
+
+	tempDir, err := os.MkdirTemp("/tmp", "co-")
+	if err != nil {
+		t.Fatalf("create short temp dir: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = os.RemoveAll(tempDir)
+	})
+
+	return filepath.Join(tempDir, GatewaySockFilename)
 }

@@ -17,7 +17,7 @@ const (
 	// GatewayConfigFilename is the gateway config file name under /etc/casaos.
 	GatewayConfigFilename = "gateway.ini"
 	// DefaultGatewayPortWatcherPollInterval is used when fsnotify is unavailable.
-	DefaultGatewayPortWatcherPollInterval = time.Second
+	DefaultGatewayPortWatcherPollInterval = 10 * time.Second
 )
 
 var (

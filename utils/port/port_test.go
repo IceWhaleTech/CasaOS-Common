@@ -1,29 +1,43 @@
 package port_test
 
 import (
-	"fmt"
+	"net"
+	"runtime"
 	"testing"
 
 	"github.com/IceWhaleTech/CasaOS-Common/utils/port"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPortAvailable(t *testing.T) {
-	//	fmt.Println(PortAvailable())
-	// fmt.Println(IsPortAvailable(6881,"tcp"))
-	p, _ := port.GetAvailablePort("udp")
-	fmt.Println("udp", p)
-	fmt.Println(port.IsPortAvailable(p, "udp"))
+	udpPort, err := port.GetAvailablePort("udp")
+	require.NoError(t, err)
+	assert.True(t, port.IsPortAvailable(udpPort, "udp"))
 
-	t1, _ := port.GetAvailablePort("tcp")
-	fmt.Println("tcp", t1)
-	fmt.Println(port.IsPortAvailable(t1, "tcp"))
+	tcpPort, err := port.GetAvailablePort("tcp")
+	require.NoError(t, err)
+	assert.True(t, port.IsPortAvailable(tcpPort, "tcp"))
 }
 
 func TestPorts(t *testing.T) {
-	tcpPorts, udpPorts, err := port.ListPortsInUse()
-	assert.NoError(t, err)
+	if runtime.GOOS != "linux" {
+		t.Skip("ListPortsInUse reads Linux /proc/net files")
+	}
 
-	assert.NotEmpty(t, tcpPorts)
-	assert.NotEmpty(t, udpPorts)
+	tcpListener, err := net.Listen("tcp4", "127.0.0.1:0")
+	require.NoError(t, err)
+	defer tcpListener.Close()
+	tcpPort := tcpListener.Addr().(*net.TCPAddr).Port
+
+	udpListener, err := net.ListenPacket("udp4", "127.0.0.1:0")
+	require.NoError(t, err)
+	defer udpListener.Close()
+	udpPort := udpListener.LocalAddr().(*net.UDPAddr).Port
+
+	tcpPorts, udpPorts, err := port.ListPortsInUse()
+	require.NoError(t, err)
+
+	assert.Contains(t, tcpPorts, tcpPort)
+	assert.Contains(t, udpPorts, udpPort)
 }

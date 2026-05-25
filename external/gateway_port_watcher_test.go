@@ -53,6 +53,14 @@ func TestReadGatewayPortConfigWithHTTPDisabled(t *testing.T) {
 	}
 }
 
+func TestNewGatewayPortWatcherUsesDefaultPollInterval(t *testing.T) {
+	watcher := NewGatewayPortWatcher(func(GatewayPortConfig) {})
+
+	if watcher.pollInterval != 10*time.Second {
+		t.Fatalf("expected default poll interval 10s, got %s", watcher.pollInterval)
+	}
+}
+
 func TestGatewayPortWatcherFallsBackToPolling(t *testing.T) {
 	var watcherStarted sync.Once
 	started := make(chan struct{})

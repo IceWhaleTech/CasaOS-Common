@@ -83,7 +83,7 @@ err := external.ListenGatewayPortChanges(ctx, callback,
 
 SDK 会优先使用 `fsnotify` 监听文件变化。在 Linux 上，`fsnotify` 底层使用 inotify。若监听初始化失败或监听过程中出错，会自动切换为定时轮询文件的修改时间和大小。
 
-默认轮询间隔为 `1s`，可以调整：
+默认轮询间隔为 `10s`，可以调整：
 
 ```go
 err := external.ListenGatewayPortChanges(ctx, callback,
