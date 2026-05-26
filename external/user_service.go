@@ -33,7 +33,6 @@ const (
 var (
 	cachedPublicKey        *ecdsa.PublicKey
 	lastUpdate             time.Time
-	validParseTokenCache   = ecache.NewLRUCache(2, 8, time.Minute)
 	invalidParseTokenCache = ecache.NewLRUCache(2, 16, time.Minute)
 	readUserServiceAddress = getAddress
 	userServiceAddressFile = filepath.Join(constants.DefaultRuntimePath, UserServiceAddressFilename)
@@ -140,17 +139,6 @@ func ParseToken(token string) (*ParsedToken, error) {
 		}
 	}
 
-	if cachedEntry, found := validParseTokenCache.Get(cacheKey); found {
-		token := cachedEntry.(*ParsedToken)
-		if token.isExpired() {
-			validParseTokenCache.Del(cacheKey)
-			invalidParseTokenCache.Put(cacheKey, tokenCacheSentinelExpired)
-			return nil, errTokenExpired
-		}
-
-		return token, nil
-	}
-
 	requestBody, err := json.Marshal(struct {
 		Token string `json:"token"`
 	}{Token: normalizedToken})
@@ -197,6 +185,9 @@ func ParseToken(token string) (*ParsedToken, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
+		if resp.StatusCode == http.StatusUnauthorized {
+			invalidParseTokenCache.Put(cacheKey, tokenCacheSentinelInvalid)
+		}
 		return nil, fmt.Errorf("failed to parse token: received status code %d", resp.StatusCode)
 	}
 
@@ -218,8 +209,6 @@ func ParseToken(token string) (*ParsedToken, error) {
 		invalidParseTokenCache.Put(cacheKey, tokenCacheSentinelExpired)
 		return nil, errTokenExpired
 	}
-
-	validParseTokenCache.Put(cacheKey, &parsedResp.Data)
 
 	return &parsedResp.Data, nil
 }
