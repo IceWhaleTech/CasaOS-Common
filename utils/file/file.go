@@ -14,7 +14,6 @@ import (
 	"strings"
 
 	"github.com/IceWhaleTech/CasaOS-Common/utils/logger"
-	"github.com/mholt/archiver/v3"
 	"go.uber.org/zap"
 )
 
@@ -382,26 +381,6 @@ func SpliceFiles(dir, path string, length int, startPoint int) error {
 	return nil
 }
 
-func GetCompressionAlgorithm(t string) (string, archiver.Writer, error) {
-	switch t {
-	case "zip", "":
-		return ".zip", archiver.NewZip(), nil
-	case "tar":
-		return ".tar", archiver.NewTar(), nil
-	case "targz":
-		return ".tar.gz", archiver.NewTarGz(), nil
-	case "tarbz2":
-		return ".tar.bz2", archiver.NewTarBz2(), nil
-	case "tarxz":
-		return ".tar.xz", archiver.NewTarXz(), nil
-	case "tarlz4":
-		return ".tar.lz4", archiver.NewTarLz4(), nil
-	case "tarsz":
-		return ".tar.sz", archiver.NewTarSz(), nil
-	default:
-		return "", nil, errors.New("format not implemented")
-	}
-}
 func IsBrokenSymlink(path string) (bool, error) {
 	info, err := os.Lstat(path)
 	if err != nil {
@@ -429,8 +408,8 @@ func IsBrokenSymlink(path string) (bool, error) {
 	return false, nil
 }
 
-func AddFile(ar archiver.Writer, path, commonPath string) error {
-	info, err := os.Stat(path)
+func AddFile(ar ArchiveWriter, path, commonPath string) error {
+	info, err := os.Lstat(path)
 	if err != nil {
 		return err
 	}
@@ -446,17 +425,11 @@ func AddFile(ar archiver.Writer, path, commonPath string) error {
 	defer file.Close()
 
 	if path != commonPath {
-		//filename := info.Name()
-		fpath := strings.Replace(path, commonPath, "", 1)
-		fpath = filepath.Join(filepath.Base(commonPath), fpath)
-		//filename := info.Name()
-		err = ar.Write(archiver.File{
-			FileInfo: archiver.FileInfo{
-				FileInfo:   info,
-				CustomName: fpath,
-			},
-			ReadCloser: file,
-		})
+		rel, err := filepath.Rel(commonPath, path)
+		if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) || filepath.IsAbs(rel) {
+			return errors.New("archive source outside common directory")
+		}
+		err = ar.Write(ArchiveFile{FileInfo: info, Name: filepath.ToSlash(filepath.Join(filepath.Base(commonPath), rel)), Reader: file})
 		if err != nil {
 			return err
 		}
